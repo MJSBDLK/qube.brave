@@ -581,7 +581,10 @@ const GradientColorSampler = () => {
 							</div>
 						</div>
 
-						<div className='swatch-container'>
+						<div 
+							className='swatch-container'
+							style={{ gridTemplateColumns: `repeat(${sampleCount}, 1fr)` }}
+						>
 							{generatedColors.map((color, index) => (
 								<div
 									key={index}

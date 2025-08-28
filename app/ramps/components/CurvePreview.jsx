@@ -123,26 +123,6 @@ const CurvePreview = ({
       ctx.fill()
     }
 
-    // Draw labels with better positioning
-    ctx.fillStyle = '#888'
-    ctx.font = '10px monospace'
-    ctx.textAlign = 'left'
-    ctx.fillText('0', 4, height - 4)
-    ctx.fillText('1', actualWidth - 12, height - 4)
-    
-    // Y-axis labels - positioned to be clearly visible
-    ctx.save()
-    ctx.translate(12, height / 2 + 10)
-    ctx.rotate(-Math.PI / 2)
-    ctx.fillText('0', 0, 0)
-    ctx.restore()
-    
-    ctx.save()
-    ctx.translate(12, 18)
-    ctx.rotate(-Math.PI / 2)
-    ctx.fillText('1', 0, 0)
-    ctx.restore()
-
   }, [samplingFunction, powerValue, sampleCount, width, height])
 
   return (
@@ -158,12 +138,6 @@ const CurvePreview = ({
           display: 'block'
         }}
       />
-      <div className="curve-info">
-        <span className="curve-label">{samplingFunction}</span>
-        {powerValue !== 2.0 && samplingFunction !== 'linear' && (
-          <span className="power-label">α={powerValue.toFixed(1)}</span>
-        )}
-      </div>
     </div>
   )
 }
