@@ -11,27 +11,32 @@ const CurvePreview = ({
   height = 60
 }) => {
   const canvasRef = useRef(null)
+  const containerRef = useRef(null)
 
   useEffect(() => {
-    if (!canvasRef.current) return
+    if (!canvasRef.current || !containerRef.current) return
 
     const canvas = canvasRef.current
     const ctx = canvas.getContext('2d')
     
+    // Get container width for responsive sizing
+    const containerWidth = containerRef.current.clientWidth
+    const actualWidth = Math.max(containerWidth - 20, 180) // Account for padding, min width
+    
     // Set canvas size with device pixel ratio for crisp rendering
     const dpr = window.devicePixelRatio || 1
-    canvas.width = width * dpr
+    canvas.width = actualWidth * dpr
     canvas.height = height * dpr
-    canvas.style.width = `${width}px`
+    canvas.style.width = `${actualWidth}px`
     canvas.style.height = `${height}px`
     ctx.scale(dpr, dpr)
 
     // Clear canvas
-    ctx.clearRect(0, 0, width, height)
+    ctx.clearRect(0, 0, actualWidth, height)
 
     // Draw background
     ctx.fillStyle = '#1a1a1a'
-    ctx.fillRect(0, 0, width, height)
+    ctx.fillRect(0, 0, actualWidth, height)
 
     // Draw grid lines
     ctx.strokeStyle = '#333'
@@ -40,7 +45,7 @@ const CurvePreview = ({
     
     // Vertical grid lines
     for (let i = 1; i < 4; i++) {
-      const x = (i / 4) * width
+      const x = (i / 4) * actualWidth
       ctx.beginPath()
       ctx.moveTo(x, 0)
       ctx.lineTo(x, height)
@@ -52,7 +57,7 @@ const CurvePreview = ({
       const y = (i / 3) * height
       ctx.beginPath()
       ctx.moveTo(0, y)
-      ctx.lineTo(width, y)
+      ctx.lineTo(actualWidth, y)
       ctx.stroke()
     }
 
@@ -64,10 +69,10 @@ const CurvePreview = ({
     ctx.beginPath()
     // Bottom edge (x-axis)
     ctx.moveTo(0, height)
-    ctx.lineTo(width, height)
-    // Left edge (y-axis)
-    ctx.moveTo(0, 0)
-    ctx.lineTo(0, height)
+    ctx.lineTo(actualWidth, height)
+    // Left edge (y-axis) - moved slightly right for visibility
+    ctx.moveTo(2, 0)
+    ctx.lineTo(2, height)
     ctx.stroke()
 
     // Get sampling function
@@ -78,8 +83,8 @@ const CurvePreview = ({
     ctx.lineWidth = 2
     ctx.beginPath()
 
-    for (let x = 0; x <= width; x += 1) {
-      const t = x / width
+    for (let x = 2; x <= actualWidth; x += 1) { // Start from x=2 to avoid axis
+      const t = (x - 2) / (actualWidth - 2)
       let mappedT
       
       if (samplingFunction === 'linear') {
@@ -90,7 +95,7 @@ const CurvePreview = ({
       
       const y = (1 - mappedT) * height
       
-      if (x === 0) {
+      if (x === 2) {
         ctx.moveTo(x, y)
       } else {
         ctx.lineTo(x, y)
@@ -110,7 +115,7 @@ const CurvePreview = ({
         mappedT = func(t, powerValue)
       }
       
-      const x = t * width
+      const x = 2 + t * (actualWidth - 2) // Account for axis offset
       const y = (1 - mappedT) * height
 
       ctx.beginPath()
@@ -118,19 +123,22 @@ const CurvePreview = ({
       ctx.fill()
     }
 
-    // Draw labels
+    // Draw labels with better positioning
     ctx.fillStyle = '#888'
     ctx.font = '10px monospace'
     ctx.textAlign = 'left'
-    ctx.fillText('0', 2, height - 2)
-    ctx.fillText('1', width - 10, height - 2)
+    ctx.fillText('0', 4, height - 4)
+    ctx.fillText('1', actualWidth - 12, height - 4)
+    
+    // Y-axis labels - positioned to be clearly visible
     ctx.save()
-    ctx.translate(2, height / 2)
+    ctx.translate(12, height / 2 + 10)
     ctx.rotate(-Math.PI / 2)
     ctx.fillText('0', 0, 0)
     ctx.restore()
+    
     ctx.save()
-    ctx.translate(2, 10)
+    ctx.translate(12, 18)
     ctx.rotate(-Math.PI / 2)
     ctx.fillText('1', 0, 0)
     ctx.restore()
@@ -138,14 +146,16 @@ const CurvePreview = ({
   }, [samplingFunction, powerValue, sampleCount, width, height])
 
   return (
-    <div className="curve-preview-container">
+    <div className="curve-preview-container" ref={containerRef}>
       <canvas 
         ref={canvasRef} 
         className="curve-preview-canvas"
         style={{ 
           background: '#1a1a1a',
           borderRadius: '6px',
-          border: '1px solid #333'
+          border: '1px solid #333',
+          width: '100%',
+          display: 'block'
         }}
       />
       <div className="curve-info">

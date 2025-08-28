@@ -5,7 +5,9 @@ import React, { useState, useRef, useCallback, useEffect } from 'react'
 import FileUpload from './components/FileUpload'
 import GradientCanvas from './components/GradientCanvas'
 import CurvePreview from './components/CurvePreview'
+import SavedRamps from './components/SavedRamps'
 import { useColorSampling } from './hooks/useColorSampling'
+import { useSavedRamps } from './hooks/useSavedRamps'
 import { parseHexColors } from './utils/colorUtils'
 import { 
   debounce, 
@@ -49,6 +51,19 @@ const GradientColorSampler = () => {
 		hasColors,
 		colorCount
 	} = useColorSampling()
+
+	// Use the saved ramps hook
+	const {
+		savedRamps,
+		isLoading: rampsLoading,
+		saveCurrentRamp,
+		updateSavedRamp,
+		deleteSavedRamp,
+		duplicateRamp,
+		exportRamps,
+		importRamps,
+		clearRamps
+	} = useSavedRamps()
 	// #endregion /State Management
 
 	// Handle PNG upload with performance optimization
@@ -223,6 +238,62 @@ const GradientColorSampler = () => {
 		copyToClipboard(color.hex, `${color.hex} copied!`)
 	}, [])
 
+	// #region Saved Ramps Handlers
+	
+	// Save current gradient as a ramp
+	const handleSaveCurrentRamp = useCallback(() => {
+		if (!hasColors) {
+			showNotification('No gradient to save', 'error')
+			return
+		}
+
+		const name = prompt('Enter a name for this ramp:')
+		if (!name) return
+
+		const rampData = {
+			name: name.trim(),
+			colors: generatedColors.map(c => c.hex),
+			sampleCount,
+			samplingFunction,
+			powerValue,
+			luminanceMode,
+			samplingRange,
+			sourceType: gradientImage ? 'image' : 'colors',
+			
+			// Derivation metadata for re-sampling
+			originalColors: colorsArray, // Original input colors
+			hexInput: hexInput, // Original hex input string
+			gradientImage: gradientImage ? 'stored' : null, // Indicate if from image
+		}
+
+		saveCurrentRamp(rampData)
+	}, [
+		hasColors, generatedColors, sampleCount, samplingFunction, 
+		powerValue, luminanceMode, samplingRange, gradientImage, 
+		colorsArray, hexInput, saveCurrentRamp
+	])
+
+	// Load a saved ramp
+	const handleLoadRamp = useCallback((ramp) => {
+		// Set all the parameters from the saved ramp
+		setSampleCount(ramp.sampleCount || 11)
+		setSamplingFunction(ramp.samplingFunction || 'linear')
+		setPowerValue(ramp.powerValue || 2.0)
+		updateLuminanceMode(ramp.luminanceMode || 'hsv')
+		setSamplingRange(ramp.samplingRange || { start: 0, end: 100 })
+		
+		// Set the colors and create a gradient
+		if (ramp.colors && ramp.colors.length > 0) {
+			const colorsString = ramp.colors.join(', ')
+			handleHexInputChange(colorsString)
+		}
+
+		showNotification(`Loaded "${ramp.name}"`, 'success')
+	}, [setSampleCount, setSamplingFunction, setPowerValue, updateLuminanceMode, 
+		setSamplingRange, handleHexInputChange])
+
+	// #endregion
+
 	return (
 		<div className='gradient-sampler'>
 			{/* Performance Indicator */}
@@ -232,7 +303,9 @@ const GradientColorSampler = () => {
 			/>
 
 			{/* Header */}
-			<h1 className='app-title'>🎨 Gradient Color Sampler v7</h1>
+			<div className='header-container'>
+				<h1 className='app-title'>🎨 Gradient Color Sampler v7</h1>
+			</div>
 
 			<div className='main-grid'>
 				{/* Testing Controls - Left Column (3/12) */}
@@ -527,6 +600,14 @@ const GradientColorSampler = () => {
 							<h3>Export Options</h3>
 							<div className='export-buttons'>
 								<button 
+									className='save-button'
+									onClick={handleSaveCurrentRamp}
+									disabled={!hasColors}
+									title={hasColors ? 'Save this gradient as a ramp' : 'Generate a gradient first'}
+								>
+									💾 Save Ramp
+								</button>
+								<button 
 									className='export-button'
 									onClick={() => exportAsGPL('gradient-swatch')}
 								>
@@ -587,12 +668,17 @@ const GradientColorSampler = () => {
 				{testingMode && (
 					<div className='saved-ramps-section'>
 						<h3>Saved Ramps</h3>
-						<div className='saved-ramps-content'>
-							{/* Placeholder for saved ramps functionality */}
-							<p style={{ color: '#888', fontSize: '13px', fontStyle: 'italic' }}>
-								Saved gradients will appear here
-							</p>
-						</div>
+						<SavedRamps
+							savedRamps={savedRamps}
+							isLoading={rampsLoading}
+							onLoadRamp={handleLoadRamp}
+							onDeleteRamp={deleteSavedRamp}
+							onDuplicateRamp={duplicateRamp}
+							onUpdateRamp={updateSavedRamp}
+							onExportRamps={exportRamps}
+							onImportRamps={importRamps}
+							onClearRamps={clearRamps}
+						/>
 					</div>
 				)}
 			</div> {/* Close main-grid */}
