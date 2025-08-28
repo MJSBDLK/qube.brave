@@ -6,6 +6,7 @@ import FileUpload from './components/FileUpload'
 import GradientCanvas from './components/GradientCanvas'
 import CurvePreview from './components/CurvePreview'
 import SavedRamps from './components/SavedRamps'
+import ColorPicker from './components/ColorPicker'
 import { useColorSampling } from './hooks/useColorSampling'
 import { useSavedRamps } from './hooks/useSavedRamps'
 import { parseHexColors, calculateLuminance } from './utils/colorUtils'
@@ -121,6 +122,19 @@ const GradientColorSampler = () => {
 
 		// Debounce gradient creation for better performance
 		debounce('hex-gradient', () => {
+			if (validateColors(colors)) {
+				createCanvasGradient(colors)
+			}
+		}, 300)
+	}, [])
+
+	// Handle color picker changes
+	const handleColorPickerChange = useCallback((colors) => {
+		setSelectedColors(colors)
+		setHexInput(colors.join(', '))
+		
+		// Debounce gradient creation for better performance
+		debounce('picker-gradient', () => {
 			if (validateColors(colors)) {
 				createCanvasGradient(colors)
 			}
@@ -445,7 +459,7 @@ const GradientColorSampler = () => {
 								className='picker-toggle-btn'
 								onClick={() => setShowColorPicker(!showColorPicker)}
 							>
-								🎨
+								{showColorPicker ? '✕ Hide' : '🎨 Picker'}
 							</button>
 							<select
 								className='luminance-selector'
@@ -458,29 +472,12 @@ const GradientColorSampler = () => {
 						</div>
 
 						{showColorPicker && (
-							<div className='color-picker-panel'>
-								<div className='picker-placeholder'>
-									Visual color picker (HSV cube, etc.)
-								</div>
-
-								<div className='selected-colors'>
-									{colorsArray.map((color, index) => (
-										<div
-											key={index}
-											className='color-chip'
-											style={{ backgroundColor: color }}
-											title={color}
-											onClick={() => {
-												const newColors = colorsArray.filter(
-													(_, i) => i !== index
-												)
-												setSelectedColors(newColors)
-												setHexInput(newColors.join(', '))
-											}}
-										/>
-									))}
-								</div>
-							</div>
+							<ColorPicker
+								selectedColors={colorsArray}
+								onColorsChange={handleColorPickerChange}
+								luminanceMode={luminanceMode}
+								onLuminanceModeChange={updateLuminanceMode}
+							/>
 						)}
 					</div>
 				</div>

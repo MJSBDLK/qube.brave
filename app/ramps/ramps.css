@@ -215,8 +215,15 @@ h1 {
 	border: none;
 	border-radius: 4px;
 	font-size: 12px;
+	font-weight: 600;
 	cursor: pointer;
 	white-space: nowrap;
+	transition: all 0.2s;
+}
+
+.picker-toggle-btn:hover {
+	background: #3a8eef;
+	transform: translateY(-1px);
 }
 
 .luminance-selector {
@@ -1947,6 +1954,405 @@ input[type='range'] {
 	
 	.curve-preview-wrapper {
 		margin-top: 8px;
+	}
+}
+
+/*#endregion /Testing Controls CSS */
+
+/*#region Color Picker CSS */
+
+/* Color Picker Container */
+.color-picker-container {
+	display: block;
+	margin-top: 15px;
+	padding: 20px;
+	background: #1a1a1a;
+	border-radius: 12px;
+	border: 1px solid #444;
+}
+
+/* Main Picker Layout */
+.hsv-picker {
+	display: flex;
+	gap: 20px;
+	align-items: flex-start;
+	margin-bottom: 20px;
+}
+
+/* Slider Containers */
+.hue-slider-container,
+.luminance-slider-container {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+}
+
+/* Individual Sliders */
+.hue-slider {
+	width: 24px;
+	height: 200px;
+	background: linear-gradient(
+		to bottom,
+		#ff0000 0%,
+		#ffff00 16.67%,
+		#00ff00 33.33%,
+		#00ffff 50%,
+		#0000ff 66.67%,
+		#ff00ff 83.33%,
+		#ff0000 100%
+	);
+	border-radius: 4px;
+	position: relative;
+	cursor: pointer;
+	border: 1px solid #555;
+}
+
+.luminance-slider {
+	width: 24px;
+	height: 200px;
+	background: linear-gradient(to bottom, white 0%, gray 50%, black 100%);
+	border-radius: 4px;
+	position: relative;
+	cursor: pointer;
+	border: 1px solid #555;
+}
+
+/* Slider Labels */
+.slider-label {
+	font-size: 10px;
+	color: #888;
+	font-weight: 600;
+	text-align: center;
+}
+
+/* SV Picker (Color Square) */
+.sv-picker {
+	width: 200px;
+	height: 200px;
+	position: relative;
+	cursor: crosshair;
+	border-radius: 8px;
+	border: 1px solid #555;
+	overflow: hidden;
+}
+
+.sv-picker::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: linear-gradient(to right, white, transparent);
+	pointer-events: none;
+}
+
+.sv-picker::after {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: linear-gradient(to bottom, transparent, black);
+	mix-blend-mode: multiply;
+	pointer-events: none;
+}
+
+/* Picker Handles */
+.picker-handle {
+	width: 14px;
+	height: 14px;
+	border: 2px solid white;
+	border-radius: 50%;
+	position: absolute;
+	pointer-events: none;
+	box-shadow: 0 0 4px rgba(0, 0, 0, 0.5), inset 0 0 2px rgba(0, 0, 0, 0.3);
+	transform: translate(-50%, -50%);
+	z-index: 10;
+}
+
+/* Color Preview Section */
+.color-preview-section {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	min-width: 120px;
+}
+
+.color-preview-large {
+	width: 80px;
+	height: 80px;
+	border-radius: 8px;
+	border: 2px solid #444;
+	cursor: pointer;
+	transition: transform 0.2s;
+}
+
+.color-preview-large:hover {
+	transform: scale(1.05);
+}
+
+/* Color Input */
+.color-input-row {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+}
+
+.hex-input-field {
+	flex: 1;
+	padding: 6px 8px;
+	background: #2a2a2a;
+	color: #e0e0e0;
+	border: 1px solid #444;
+	border-radius: 4px;
+	font-size: 13px;
+	font-family: monospace;
+	text-transform: uppercase;
+}
+
+.hex-input-field:focus {
+	outline: none;
+	border-color: #4a9eff;
+	background: #333;
+}
+
+/* Color Values Display */
+.color-values-display {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	font-size: 11px;
+	color: #888;
+	font-family: monospace;
+}
+
+/* Color Actions */
+.color-actions {
+	display: flex;
+	gap: 8px;
+}
+
+.picker-btn {
+	padding: 8px 12px;
+	background: #4a9eff;
+	color: white;
+	border: none;
+	border-radius: 6px;
+	font-size: 12px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.2s;
+}
+
+.picker-btn:hover:not(:disabled) {
+	background: #3a8eef;
+	transform: translateY(-1px);
+}
+
+.picker-btn:disabled {
+	background: #333;
+	color: #666;
+	cursor: not-allowed;
+	transform: none;
+}
+
+.picker-btn.add {
+	background: #28a745;
+}
+
+.picker-btn.add:hover:not(:disabled) {
+	background: #22943e;
+}
+
+/* Luminance Mode Selector */
+.luminance-mode-selector {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 12px;
+}
+
+.luminance-mode-selector label {
+	color: #888;
+	font-weight: 600;
+}
+
+.luminance-mode-selector select {
+	padding: 4px 6px;
+	background: #2a2a2a;
+	color: #e0e0e0;
+	border: 1px solid #444;
+	border-radius: 4px;
+	font-size: 11px;
+	cursor: pointer;
+}
+
+.luminance-mode-selector select:focus {
+	outline: none;
+	border-color: #4a9eff;
+}
+
+/* Selected Colors Section */
+.selected-colors-section {
+	margin-top: 20px;
+	padding-top: 15px;
+	border-top: 1px solid #333;
+}
+
+.selected-colors-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 12px;
+}
+
+.selected-colors-header span {
+	font-size: 14px;
+	font-weight: 600;
+	color: #b0b0b0;
+}
+
+.clear-all-btn {
+	padding: 4px 8px;
+	background: #dc3545;
+	color: white;
+	border: none;
+	border-radius: 4px;
+	font-size: 11px;
+	cursor: pointer;
+	transition: background 0.2s;
+}
+
+.clear-all-btn:hover {
+	background: #c82333;
+}
+
+/* Selected Colors List */
+.selected-colors-list {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+	padding: 12px;
+	background: #2a2a2a;
+	border-radius: 8px;
+	min-height: 50px;
+	align-items: center;
+}
+
+.empty-state {
+	color: #666;
+	font-size: 12px;
+	font-style: italic;
+	text-align: center;
+	width: 100%;
+}
+
+/* Selected Color Chips */
+.selected-color-chip {
+	width: 36px;
+	height: 36px;
+	border-radius: 6px;
+	border: 1px solid #444;
+	cursor: pointer;
+	position: relative;
+	transition: all 0.2s;
+	flex-shrink: 0;
+}
+
+.selected-color-chip:hover {
+	transform: scale(1.1);
+	border-color: #4a9eff;
+}
+
+.remove-btn {
+	position: absolute;
+	top: -6px;
+	right: -6px;
+	width: 18px;
+	height: 18px;
+	background: #ff4444;
+	color: white;
+	border: none;
+	border-radius: 50%;
+	font-size: 12px;
+	font-weight: bold;
+	cursor: pointer;
+	display: none;
+	align-items: center;
+	justify-content: center;
+	line-height: 1;
+	transition: all 0.2s;
+}
+
+.selected-color-chip:hover .remove-btn {
+	display: flex;
+}
+
+.remove-btn:hover {
+	background: #ff0000;
+	transform: scale(1.1);
+}
+
+/* Gradient Preview Chip */
+.gradient-preview-chip {
+	height: 36px;
+	flex: 1;
+	min-width: 120px;
+	max-width: 200px;
+	border-radius: 6px;
+	border: 1px solid #444;
+	cursor: pointer;
+	transition: all 0.2s;
+	margin-left: 8px;
+}
+
+.gradient-preview-chip:hover {
+	border-color: #4a9eff;
+	transform: translateY(-1px);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+	.hsv-picker {
+		flex-direction: column;
+		align-items: center;
+		gap: 15px;
+	}
+	
+	.hue-slider,
+	.luminance-slider {
+		width: 200px;
+		height: 24px;
+	}
+	
+	.hue-slider {
+		background: linear-gradient(
+			to right,
+			#ff0000 0%,
+			#ffff00 16.67%,
+			#00ff00 33.33%,
+			#00ffff 50%,
+			#0000ff 66.67%,
+			#ff00ff 83.33%,
+			#ff0000 100%
+		);
+	}
+	
+	.sv-picker {
+		width: 180px;
+		height: 180px;
+	}
+	
+	.color-preview-section {
+		align-items: center;
+		min-width: auto;
+	}
+	
+	.selected-colors-list {
+		justify-content: center;
 	}
 }
 
