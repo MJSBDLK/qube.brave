@@ -8,7 +8,7 @@ import CurvePreview from './components/CurvePreview'
 import SavedRamps from './components/SavedRamps'
 import { useColorSampling } from './hooks/useColorSampling'
 import { useSavedRamps } from './hooks/useSavedRamps'
-import { parseHexColors } from './utils/colorUtils'
+import { parseHexColors, calculateLuminance } from './utils/colorUtils'
 import { 
   debounce, 
   showNotification, 
@@ -33,6 +33,11 @@ const GradientColorSampler = () => {
 	const [processing, setProcessing] = useState(false)
 	const [sampleCount, setSampleCount] = useState(11)
 	const [gradientImage, setGradientImage] = useState(null)
+	const [rampName, setRampName] = useState('')
+	const [stepValue, setStepValue] = useState(0.1)
+	const [showLuminance, setShowLuminance] = useState('none')
+	const [comparisonRamp, setComparisonRamp] = useState(null)
+	const [showComparisonSection, setShowComparisonSection] = useState(false)
 	
 	// Use the color sampling hook
 	const {
@@ -61,8 +66,13 @@ const GradientColorSampler = () => {
 		deleteSavedRamp,
 		duplicateRamp,
 		exportRamps,
+		exportRampsAsGPL,
+		exportRampsAsPNG,
 		importRamps,
-		clearRamps
+		clearRamps,
+		reorderRamps,
+		reverseSavedRamp,
+		reverseAllRamps
 	} = useSavedRamps()
 	// #endregion /State Management
 
@@ -219,6 +229,31 @@ const GradientColorSampler = () => {
 		}
 	}, [gradientImage, samplingRange, samplingFunction, sampleCount, debouncedGenerateSwatch])
 
+	// Handle step value changes
+	const handleStepChange = useCallback((value) => {
+		setStepValue(value)
+	}, [])
+
+	// Helper function to determine decimal places based on step value
+	const getDecimalPlaces = useCallback((step) => {
+		const stepStr = step.toString()
+		if (stepStr.includes('.')) {
+			return stepStr.split('.')[1].length
+		}
+		return 0
+	}, [])
+
+	// Handle show luminance dropdown changes
+	const handleShowLuminanceChange = useCallback((value) => {
+		setShowLuminance(value)
+	}, [])
+
+	// Handle comparison ramp selection
+	const handleComparisonSelect = useCallback((ramp) => {
+		setComparisonRamp(ramp)
+		setShowComparisonSection(true)
+	}, [])
+
 	// Handle canvas ready callback
 	const handleCanvasReady = useCallback((canvas, ctx) => {
 		setCanvasRef(canvas, ctx)
@@ -247,11 +282,13 @@ const GradientColorSampler = () => {
 			return
 		}
 
-		const name = prompt('Enter a name for this ramp:')
-		if (!name) return
+		if (!rampName.trim()) {
+			showNotification('Please enter a ramp name', 'error')
+			return
+		}
 
 		const rampData = {
-			name: name.trim(),
+			name: rampName.trim(),
 			colors: generatedColors.map(c => c.hex),
 			sampleCount,
 			samplingFunction,
@@ -267,11 +304,23 @@ const GradientColorSampler = () => {
 		}
 
 		saveCurrentRamp(rampData)
+		setRampName('') // Clear the input after saving
 	}, [
-		hasColors, generatedColors, sampleCount, samplingFunction, 
+		hasColors, rampName, generatedColors, sampleCount, samplingFunction, 
 		powerValue, luminanceMode, samplingRange, gradientImage, 
 		colorsArray, hexInput, saveCurrentRamp
 	])
+
+	// Create test ramps for debugging
+	const createTestRamps = useCallback(() => {
+		const testRamps = [
+			{ name: 'Test Ramp 1', colors: ['#ff0000', '#00ff00', '#0000ff'], sampleCount: 11, samplingFunction: 'linear', powerValue: 2.0, luminanceMode: 'hsv', samplingRange: { start: 0, end: 100 }, sourceType: 'colors' },
+			{ name: 'Test Ramp 2', colors: ['#ffff00', '#ff00ff', '#00ffff'], sampleCount: 11, samplingFunction: 'linear', powerValue: 2.0, luminanceMode: 'hsv', samplingRange: { start: 0, end: 100 }, sourceType: 'colors' },
+			{ name: 'Test Ramp 3', colors: ['#ffffff', '#000000'], sampleCount: 11, samplingFunction: 'linear', powerValue: 2.0, luminanceMode: 'hsv', samplingRange: { start: 0, end: 100 }, sourceType: 'colors' }
+		]
+		
+		testRamps.forEach(ramp => saveCurrentRamp(ramp))
+	}, [saveCurrentRamp])
 
 	// Load a saved ramp
 	const handleLoadRamp = useCallback((ramp) => {
@@ -341,6 +390,12 @@ const GradientColorSampler = () => {
 									onClick={() => handleHexInputChange('#667eea, #764ba2')}
 								>
 									Purple
+								</button>
+								<button 
+									className='mini-test-btn'
+									onClick={createTestRamps}
+								>
+									Test Ramps
 								</button>
 							</div>
 						</div>
@@ -531,15 +586,27 @@ const GradientColorSampler = () => {
 
 							{showPowerSlider && (
 								<div className='power-controls'>
-									<label>Power: {powerValue.toFixed(1)}</label>
+									<label>α: {powerValue.toFixed(getDecimalPlaces(stepValue))}</label>
 									<input
 										type='range'
 										min='0.1'
 										max='5'
-										step='0.1'
+										step={stepValue}
 										value={powerValue}
 										onChange={(e) => handlePowerChange(parseFloat(e.target.value))}
 									/>
+									<div className='step-control'>
+										<label>Step: </label>
+										<input
+											type='number'
+											min='0.001'
+											max='1'
+											step='0.001'
+											value={stepValue}
+											onChange={(e) => handleStepChange(parseFloat(e.target.value))}
+											className='step-input'
+										/>
+									</div>
 								</div>
 							)}
 
@@ -564,6 +631,16 @@ const GradientColorSampler = () => {
 						<div className='section-header'>
 							<h2>Generated Swatch ({colorCount} colors)</h2>
 							<div className='swatch-actions'>
+								<select
+									className='show-luminance-selector'
+									value={showLuminance}
+									onChange={(e) => handleShowLuminanceChange(e.target.value)}
+									title="Show luminance values on color tiles"
+								>
+									<option value='none'>Luminance</option>
+									<option value='ciel'>CIE L*</option>
+									<option value='hsv'>HSV</option>
+								</select>
 								<button
 									className='control-icon-btn'
 									onClick={reverseColors}
@@ -595,32 +672,101 @@ const GradientColorSampler = () => {
 								>
 									<span className='color-index'>{index}</span>
 									<span className='color-code'>{color.hex}</span>
+									{showLuminance !== 'none' && (
+										<span className='luminance-overlay'>
+											{showLuminance === 'ciel' ? Math.round(color.luminance_ciel || 0) : Math.round(color.luminance_hsv || 0)}
+										</span>
+									)}
 								</div>
 							))}
 						</div>
 
-						<div className='export-section'>
-							<h3>Export Options</h3>
-							<div className='export-buttons'>
+						{/* Comparison Swatch */}
+						{comparisonRamp && showComparisonSection && (
+							<>
+								<div 
+									className='swatch-container comparison-swatch'
+									style={{ gridTemplateColumns: `repeat(${comparisonRamp.colors?.length || sampleCount}, 1fr)` }}
+								>
+									{comparisonRamp.colors?.map((hex, index) => (
+										<div
+											key={index}
+											className='color-tile'
+											style={{ backgroundColor: hex }}
+											onClick={() => copyToClipboard(hex, `${hex} copied!`)}
+											title={`${hex} (Click to copy)`}
+										>
+											<span className='color-index'>{index}</span>
+											<span className='color-code'>{hex}</span>
+											{showLuminance !== 'none' && (
+												<span className='luminance-overlay'>
+													{showLuminance === 'ciel' ? Math.round(calculateLuminance(parseInt(hex.slice(1,3), 16), parseInt(hex.slice(3,5), 16), parseInt(hex.slice(5,7), 16), 'ciel')) : Math.round(calculateLuminance(parseInt(hex.slice(1,3), 16), parseInt(hex.slice(3,5), 16), parseInt(hex.slice(5,7), 16), 'hsv'))}
+												</span>
+											)}
+										</div>
+									))}
+								</div>
+								<div className='comparison-controls'>
+									<div className='comparison-info'>
+										<span className='comparison-label'>Comparing with: <strong>{comparisonRamp.name}</strong></span>
+									</div>
+									<button
+										className='comparison-close-btn'
+										onClick={() => setShowComparisonSection(false)}
+										title='Hide Comparison'
+									>
+										✕ Hide Comparison
+									</button>
+								</div>
+							</>
+						)}
+
+						<div className='save-section'>
+							<h3>Save Current Ramp</h3>
+							<div className='save-controls'>
+								<input
+									type='text'
+									className='ramp-name-input'
+									placeholder='Enter ramp name...'
+									value={rampName}
+									onChange={(e) => setRampName(e.target.value)}
+									onKeyPress={(e) => {
+										if (e.key === 'Enter' && rampName.trim()) {
+											handleSaveCurrentRamp()
+										}
+									}}
+								/>
 								<button 
 									className='save-button'
 									onClick={handleSaveCurrentRamp}
-									disabled={!hasColors}
-									title={hasColors ? 'Save this gradient as a ramp' : 'Generate a gradient first'}
+									disabled={!hasColors || !rampName.trim()}
+									title={
+										!hasColors ? 'Generate a gradient first' : 
+										!rampName.trim() ? 'Enter a ramp name' : 
+										'Save this gradient as a ramp'
+									}
 								>
-									💾 Save Ramp
+									💾
 								</button>
+							</div>
+						</div>
+
+						<div className='export-section' style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+							<h4>Active Ramp Export Options</h4>
+							<div className='export-buttons'>
 								<button 
 									className='export-button'
 									onClick={() => exportAsGPL('gradient-swatch')}
+									title='Download .gpl'
 								>
-									Download .gpl
+									📄
 								</button>
 								<button 
 									className='export-button png-export'
 									onClick={() => exportAsPNG('gradient-swatch')}
+									title='Download .png'
 								>
-									Download .png
+									🖼️
 								</button>
 								<button 
 									className='export-button'
@@ -628,8 +774,9 @@ const GradientColorSampler = () => {
 										const gplContent = generatedColors.map(c => c.hex).join(', ')
 										copyToClipboard(gplContent, 'Colors copied to clipboard!')
 									}}
+									title='Copy Colors'
 								>
-									Copy Colors
+									📋
 								</button>
 							</div>
 						</div>
@@ -679,8 +826,14 @@ const GradientColorSampler = () => {
 							onDuplicateRamp={duplicateRamp}
 							onUpdateRamp={updateSavedRamp}
 							onExportRamps={exportRamps}
+							onExportRampsAsGPL={exportRampsAsGPL}
+							onExportRampsAsPNG={exportRampsAsPNG}
 							onImportRamps={importRamps}
 							onClearRamps={clearRamps}
+							onReorderRamps={reorderRamps}
+							onReverseSavedRamp={reverseSavedRamp}
+							onReverseAllRamps={reverseAllRamps}
+							onCompareRamp={handleComparisonSelect}
 						/>
 					</div>
 				)}

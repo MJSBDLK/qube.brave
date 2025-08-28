@@ -174,6 +174,177 @@ export function exportSavedRamps() {
 }
 
 /**
+ * Export all saved ramps as a single GPL (GIMP Palette) file
+ */
+export function exportSavedRampsAsGPL() {
+  const ramps = getSavedRamps()
+  
+  if (ramps.length === 0) {
+    throw new Error('No saved ramps to export')
+  }
+  
+  let gplContent = 'GIMP Palette\n'
+  gplContent += `Name: Gradient Ramps Export\n`
+  gplContent += `Columns: 16\n`
+  gplContent += `# Exported from Gradient Color Sampler\n`
+  gplContent += `# ${new Date().toISOString()}\n`
+  gplContent += `# Total ramps: ${ramps.length}\n`
+  gplContent += '#\n'
+  
+  ramps.forEach((ramp, rampIndex) => {
+    gplContent += `# Ramp ${rampIndex + 1}: ${ramp.name}\n`
+    
+    if (ramp.colors && ramp.colors.length > 0) {
+      ramp.colors.forEach((color, colorIndex) => {
+        const hex = color.startsWith('#') ? color : `#${color}`
+        const rgb = hexToRgb(hex)
+        
+        if (rgb) {
+          const r = rgb.r.toString().padStart(3, ' ')
+          const g = rgb.g.toString().padStart(3, ' ')
+          const b = rgb.b.toString().padStart(3, ' ')
+          const colorName = `${ramp.name}_${colorIndex + 1}`
+          
+          gplContent += `${r} ${g} ${b}	${colorName}\n`
+        }
+      })
+    }
+    
+    // Add separator between ramps
+    if (rampIndex < ramps.length - 1) {
+      gplContent += '#\n'
+    }
+  })
+  
+  const blob = new Blob([gplContent], { type: 'text/plain' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `gradient-ramps-${new Date().toISOString().split('T')[0]}.gpl`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
+/**
+ * Export all saved ramps as a single PNG file with single-pixel colors
+ */
+export function exportSavedRampsAsPNG() {
+  const ramps = getSavedRamps()
+  
+  if (ramps.length === 0) {
+    throw new Error('No saved ramps to export')
+  }
+  
+  // Calculate total colors across all ramps
+  const totalColors = ramps.reduce((sum, ramp) => {
+    return sum + (ramp.colors ? ramp.colors.length : 0)
+  }, 0)
+  
+  if (totalColors === 0) {
+    throw new Error('No colors found in saved ramps')
+  }
+  
+  const canvas = document.createElement('canvas')
+  const ctx = canvas.getContext('2d')
+  
+  // Create a single row of pixels, one for each color
+  canvas.width = totalColors
+  canvas.height = 1
+  
+  let pixelIndex = 0
+  
+  ramps.forEach(ramp => {
+    if (ramp.colors && ramp.colors.length > 0) {
+      ramp.colors.forEach(color => {
+        const hex = color.startsWith('#') ? color : `#${color}`
+        const rgb = hexToRgb(hex)
+        
+        if (rgb) {
+          const imageData = ctx.createImageData(1, 1)
+          imageData.data[0] = rgb.r
+          imageData.data[1] = rgb.g
+          imageData.data[2] = rgb.b
+          imageData.data[3] = 255 // Alpha
+          
+          ctx.putImageData(imageData, pixelIndex, 0)
+          pixelIndex++
+        }
+      })
+    }
+  })
+  
+  canvas.toBlob((blob) => {
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `gradient-ramps-pixels-${new Date().toISOString().split('T')[0]}.png`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }, 'image/png')
+}
+
+/**
+ * Reverse the order of colors within a saved ramp
+ */
+export function reverseSavedRampColors(rampId) {
+  const ramps = getSavedRamps()
+  const rampIndex = ramps.findIndex(ramp => ramp.id === rampId)
+  
+  if (rampIndex === -1) {
+    throw new Error('Ramp not found')
+  }
+  
+  const ramp = ramps[rampIndex]
+  if (ramp.colors && ramp.colors.length > 0) {
+    ramp.colors = [...ramp.colors].reverse()
+    ramp.updatedAt = new Date().toISOString()
+    
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(ramps))
+    return ramp
+  }
+  
+  throw new Error('No colors to reverse in this ramp')
+}
+
+/**
+ * Reverse the order of all saved ramps
+ */
+export function reverseAllSavedRamps() {
+  const ramps = getSavedRamps()
+  
+  if (ramps.length === 0) {
+    throw new Error('No ramps to reverse')
+  }
+  
+  const reversedRamps = [...ramps].reverse()
+  
+  // Update timestamps to maintain the new order
+  const updatedRamps = reversedRamps.map(ramp => ({
+    ...ramp,
+    updatedAt: new Date().toISOString()
+  }))
+  
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedRamps))
+  return updatedRamps
+}
+
+/**
+ * Helper function to convert hex to RGB (moved from colorUtils to avoid circular import)
+ */
+function hexToRgb(hex) {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : null
+}
+
+/**
  * Import saved ramps from a file
  */
 export function importSavedRamps(file) {
@@ -220,6 +391,27 @@ export function clearAllRamps() {
     return true
   } catch (error) {
     console.error('Error clearing ramps:', error)
+    return false
+  }
+}
+
+/**
+ * Reorder saved ramps by replacing the entire array
+ */
+export function reorderSavedRamps(reorderedRamps) {
+  if (typeof window === 'undefined') return false
+  
+  try {
+    // Update all ramps with new updatedAt timestamp to preserve order
+    const rampsWithTimestamp = reorderedRamps.map(ramp => ({
+      ...ramp,
+      updatedAt: new Date().toISOString()
+    }))
+    
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(rampsWithTimestamp))
+    return true
+  } catch (error) {
+    console.error('Error reordering ramps:', error)
     return false
   }
 }

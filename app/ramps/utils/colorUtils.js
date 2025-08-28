@@ -253,7 +253,8 @@ export function generateColorSwatch(canvas, ctx, options = {}) {
     sampleCount = 11,
     samplingFunction = 'linear',
     powerValue = 2.0,
-    sampleSize = 2
+    sampleSize = 2,
+    luminanceMode = 'ciel'
   } = options
 
   const start = startRange / 100
@@ -272,6 +273,12 @@ export function generateColorSwatch(canvas, ctx, options = {}) {
 
     positions.push(position)
     const color = sampleColorAtPosition(canvas, ctx, position, sampleSize)
+    
+    // Calculate both luminance values
+    color.luminance_ciel = calculateLuminance(color.r, color.g, color.b, 'ciel')
+    color.luminance_hsv = calculateLuminance(color.r, color.g, color.b, 'hsv')
+    color.luminance = calculateLuminance(color.r, color.g, color.b, luminanceMode)
+    
     colors.push(color)
   }
 

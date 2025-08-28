@@ -10,8 +10,13 @@ import {
   deleteRamp,
   generateThumbnail,
   exportSavedRamps,
+  exportSavedRampsAsGPL,
+  exportSavedRampsAsPNG,
+  reverseSavedRampColors,
+  reverseAllSavedRamps,
   importSavedRamps,
-  clearAllRamps
+  clearAllRamps,
+  reorderSavedRamps
 } from '../utils/savedRampsUtils'
 import { showNotification } from '../utils/performanceUtils'
 
@@ -31,7 +36,8 @@ export function useSavedRamps() {
     setIsLoading(true)
     try {
       const ramps = getSavedRamps()
-      setSavedRamps(ramps.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)))
+      // Keep the original order from storage (don't sort by date)
+      setSavedRamps(ramps)
     } catch (error) {
       console.error('Error loading saved ramps:', error)
       showNotification('Error loading saved ramps', 'error')
@@ -81,7 +87,7 @@ export function useSavedRamps() {
         setSavedRamps(prev => 
           prev.map(ramp => 
             ramp.id === rampId ? updatedRamp : ramp
-          ).sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+          )
         )
         showNotification(`Updated "${updatedRamp.name}"`, 'success')
         return updatedRamp
@@ -158,6 +164,68 @@ export function useSavedRamps() {
   }, [])
 
   /**
+   * Export all saved ramps as GPL file
+   */
+  const exportRampsAsGPL = useCallback(() => {
+    try {
+      exportSavedRampsAsGPL()
+      showNotification('Ramps exported as GPL successfully', 'success')
+    } catch (error) {
+      console.error('Error exporting ramps as GPL:', error)
+      showNotification('Error exporting ramps as GPL: ' + error.message, 'error')
+    }
+  }, [])
+
+  /**
+   * Export all saved ramps as PNG file
+   */
+  const exportRampsAsPNG = useCallback(() => {
+    try {
+      exportSavedRampsAsPNG()
+      showNotification('Ramps exported as PNG successfully', 'success')
+    } catch (error) {
+      console.error('Error exporting ramps as PNG:', error)
+      showNotification('Error exporting ramps as PNG: ' + error.message, 'error')
+    }
+  }, [])
+
+  /**
+   * Reverse colors within a saved ramp
+   */
+  const reverseSavedRamp = useCallback((rampId) => {
+    try {
+      const updatedRamp = reverseSavedRampColors(rampId)
+      setSavedRamps(prev => 
+        prev.map(ramp => 
+          ramp.id === rampId ? updatedRamp : ramp
+        )
+      )
+      showNotification('Ramp colors reversed', 'success')
+      return updatedRamp
+    } catch (error) {
+      console.error('Error reversing ramp colors:', error)
+      showNotification('Error reversing ramp colors: ' + error.message, 'error')
+      return null
+    }
+  }, [])
+
+  /**
+   * Reverse the order of all saved ramps
+   */
+  const reverseAllRamps = useCallback(() => {
+    try {
+      const reversedRamps = reverseAllSavedRamps()
+      setSavedRamps(reversedRamps)
+      showNotification('All ramps order reversed', 'success')
+      return reversedRamps
+    } catch (error) {
+      console.error('Error reversing all ramps:', error)
+      showNotification('Error reversing all ramps: ' + error.message, 'error')
+      return null
+    }
+  }, [])
+
+  /**
    * Import ramps from a file
    */
   const importRamps = useCallback(async (file) => {
@@ -201,6 +269,27 @@ export function useSavedRamps() {
   }, [])
 
   /**
+   * Reorder saved ramps
+   */
+  const reorderRamps = useCallback((reorderedRamps) => {
+    try {
+      const success = reorderSavedRamps(reorderedRamps)
+      if (success) {
+        setSavedRamps(reorderedRamps)
+        // No notification needed for reordering - it's a direct user action
+        return true
+      } else {
+        showNotification('Failed to reorder ramps', 'error')
+        return false
+      }
+    } catch (error) {
+      console.error('Error reordering ramps:', error)
+      showNotification('Error reordering ramps', 'error')
+      return false
+    }
+  }, [])
+
+  /**
    * Get ramp statistics
    */
   const getRampStats = useCallback(() => {
@@ -237,11 +326,18 @@ export function useSavedRamps() {
     deleteSavedRamp,
     duplicateRamp,
     loadSavedRamps,
+    reorderRamps,
     
     // Import/Export
     exportRamps,
+    exportRampsAsGPL,
+    exportRampsAsPNG,
     importRamps,
     clearRamps,
+    
+    // Color/Order operations
+    reverseSavedRamp,
+    reverseAllRamps,
     
     // Utilities
     getRampStats
