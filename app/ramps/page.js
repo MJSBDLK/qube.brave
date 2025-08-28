@@ -1,634 +1,385 @@
 // app/qube.brave/ramps/page.jsx
 'use client'
-
-import React, { useState } from 'react'
-
+import './ramps.css'
+import React, { useState, useRef, useCallback } from 'react'
+import FileUpload from './components/FileUpload'
+import GradientCanvas from './components/GradientCanvas'
+// Main Component
 const GradientColorSampler = () => {
-	const [processing, setProcessing] = useState(false)
-	const [showOutput, setShowOutput] = useState(false)
-	const [showPreview, setShowPreview] = useState(false)
-	const [savedRampsCollapsed, setSavedRampsCollapsed] = useState(false)
+	// #region State Management
 	const [showColorPicker, setShowColorPicker] = useState(false)
+	const [luminanceMode, setLuminanceMode] = useState('ciel')
+	const [hexInput, setHexInput] = useState('')
+	const [colorsArray, setSelectedColors] = useState([])
+	const [samplingRange, setSamplingRange] = useState({ start: 0, end: 100 })
+	const [samplingFunction, setSamplingFunction] = useState('linear')
+	const [powerValue, setPowerValue] = useState(2.0)
+	const [showPowerSlider, setShowPowerSlider] = useState(false)
 	const [showChangelogCollapsed, setShowChangelogCollapsed] = useState(true)
-	const [showCompareCollapsed, setShowCompareCollapsed] = useState(true)
+	const [processing, setProcessing] = useState(false)
+	// Sampling state
+	const [sampleCount, setSampleCount] = useState(11)
+	const [gradientImage, setGradientImage] = useState(null)
+	const [generatedColors, setGeneratedColors] = useState([])
+	// #endregion /State Management
+
+	// Handle PNG upload
+	const handleImageUpload = useCallback((file) => {
+		setProcessing(true)
+		const img = new Image()
+		img.onload = () => {
+			setGradientImage(img)
+			setProcessing(false)
+		}
+		img.src = URL.createObjectURL(file)
+	}, [])
+
+	// Handle GPL import
+	const handleGPLImport = useCallback((file) => {
+		const reader = new FileReader()
+		reader.onload = (e) => {
+			try {
+				const gplContent = e.target.result
+				// TODO: Parse GPL file and import ramps
+				console.log('GPL content:', gplContent)
+			} catch (error) {
+				console.error('Failed to parse GPL file:', error)
+			}
+		}
+		reader.readAsText(file)
+	}, [])
+
+	// Handle hex input colors
+	const parseHexColors = (input) => {
+		if (!input) return []
+
+		const parts = input.split(/[,;\s]+/)
+		const colors = []
+
+		for (let part of parts) {
+			part = part.trim()
+			if (!part) continue
+
+			if (!part.startsWith('#')) {
+				part = '#' + part
+			}
+
+			if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(part)) {
+				if (part.length === 4) {
+					part = '#' + part[1] + part[1] + part[2] + part[2] + part[3] + part[3]
+				}
+				colors.push(part)
+			}
+		}
+
+		return colors
+	}
+
+	const handleHexInputChange = (value) => {
+		setHexInput(value)
+		const colors = parseHexColors(value)
+		setSelectedColors(colors)
+
+		if (validateColors(colors)) {
+			createCanvasGradient(colors)
+		}
+	}
+	const validateColors = (colorsArray) => {
+		// Read the value of selectedColors and return true if these are indeed 2-8 valid colors, false if not
+		if (
+			!colorsArray ||
+			colorsArray.length < 2 ||
+			colorsArray.length > 8
+		) {
+			return false
+		}
+
+		// Check if each color is a valid hex color
+		return colorsArray.every(
+			(color) =>
+				typeof color === 'string' &&
+				color.startsWith('#') &&
+				(/^#[0-9A-Fa-f]{6}$/.test(color) || /^#[0-9A-Fa-f]{3}$/.test(color))
+		)
+	}
+
+	const createCanvasGradient = (colors) => {
+		const canvas = document.createElement('canvas')
+		const ctx = canvas.getContext('2d')
+		const width = canvas.parentElement?.offsetWidth || 800
+		const height = canvas.parentElement?.offsetHeight || 400
+
+		canvas.width = width
+		canvas.height = height
+
+		const gradient = ctx.createLinearGradient(0, 0, width, 0)
+		colors.forEach((color, index) => {
+			const position = index / (colors.length - 1)
+			gradient.addColorStop(position, color)
+		})
+
+		ctx.fillStyle = gradient
+		ctx.fillRect(0, 0, width, height)
+
+		canvas.toBlob((blob) => {
+			const url = URL.createObjectURL(blob)
+			const img = new Image()
+			img.onload = () => {
+				setGradientImage(img)
+				URL.revokeObjectURL(url)
+			}
+			img.src = url
+		})
+	}
+
+	const handleFunctionChange = (value) => {
+		setSamplingFunction(value)
+		setShowPowerSlider(
+			value === 'customExponent' || value === 'customParametric'
+		)
+	}
 
 	return (
-		<div className='min-h-screen'>
+		<div className='gradient-sampler'>
 			{/* Performance Indicator */}
 			<div
 				className={`performance-indicator ${
-					processing ? `u-visible` : `u-invisible`
+					processing ? 'u-visible' : 'u-invisible'
 				}`}
-				id='perfIndicator'
 			>
 				Processing...
 			</div>
 
-			<div className='container'>
-				{/* Title */}
-				<h1>🎨 Gradient Color Sampler v7</h1>
+			<div className='main-content'>
+				{/* Header */}
+				<h1 className='app-title'>🎨 Gradient Color Sampler v7</h1>
 
 				{/* Upload Section */}
-				<div className='upload-section' id='uploadSection'>
-					<div className='file-input-wrapper'>
-						<div id='gradientInputWrapper'>
-							<label htmlFor='gradientInput' className='file-input-button'>
-								Choose Gradient Image
-							</label>
-							<input type='file' id='gradientInput' accept='image/*' />
-							<p className='info-text'>
-								Or drag and drop an image here (large images will be
-								automatically resized for performance)
-							</p>
+				<div className='upload-section'>
+					<div className='upload-grid'>
+						<div className='upload-item'>
+							<label className='upload-label'>PNG Image</label>
+							<FileUpload
+								accept='image/png'
+								onFileSelect={handleImageUpload}
+								buttonText='Choose PNG'
+								infoText='Gradient to sample'
+							/>
 						</div>
 
-						<div
-							id='gplImportWrapper'
-							style={{
-								margin: '10px 0',
-								padding: '10px 0',
-								borderTop: '1px solid #444',
-							}}
-						>
-							<p
-								style={{
-									marginBottom: '5px',
-									color: '#b0b0b0',
-									fontSize: '14px',
-									fontWeight: '600',
-								}}
-							>
-								OR IMPORT SAVED RAMPS
-							</p>
-							<div
-								style={{
-									display: 'flex',
-									gap: '10px',
-									alignItems: 'center',
-									flexWrap: 'wrap',
-								}}
-							>
-								<div className='file-input-wrapper'>
-									<label
-										htmlFor='gplInput'
-										className='file-input-button'
-										style={{ background: '#28a745' }}
-									>
-										Import .gpl File
-									</label>
-									<input type='file' id='gplInput' accept='.gpl,.txt' />
-								</div>
-							</div>
-							<p
-								className='info-text'
-								style={{ marginTop: '2.5px', fontSize: '12px' }}
-							>
-								Import a .gpl palette file with multiple ramps.
-								<span style={{ color: '#ff6b6b', fontWeight: '600' }}>
-									Warning: This will replace all current saved ramps!
-								</span>
-							</p>
+						<div className='upload-item'>
+							<label className='upload-label'>Import Ramps</label>
+							<FileUpload
+								accept='.gpl'
+								onFileSelect={handleGPLImport}
+								buttonText='Choose .gpl'
+								buttonColor='#28a745'
+								infoText='GIMP palette'
+							/>
 						</div>
 					</div>
 
-					{/* Custom Gradient */}
-					<div
-						style={{
-							margin: '5px 0',
-							padding: '10px 0',
-							borderTop: '1px solid #444',
-						}}
-					>
-						<p
-							style={{
-								marginBottom: '5px',
-								color: '#b0b0b0',
-								fontSize: '14px',
-								fontWeight: '600',
-							}}
-						>
-							OR CREATE A GRADIENT FROM COLORS
-						</p>
+					<div className='divider'>OR</div>
 
-						<div
-							style={{
-								display: 'flex',
-								gap: '10px',
-								alignItems: 'center',
-								flexWrap: 'wrap',
-								marginBottom: '10px',
-							}}
-						>
+					<div className='color-input-section'>
+						<label className='upload-label'>Create from Colors</label>
+						<div className='hex-input-row'>
 							<input
 								type='text'
-								id='hexInput'
+								className='hex-input'
 								placeholder='#ff0000, #00ff00, #0000ff'
-								style={{
-									flex: '1',
-									minWidth: '200px',
-									padding: '5px',
-									background: '#1a1a1a',
-									color: '#e0e0e0',
-									border: '1px solid #444',
-									borderRadius: '6px',
-								}}
+								value={hexInput}
+								onChange={(e) => handleHexInputChange(e.target.value)}
 							/>
 							<button
-								className='picker-btn'
+								className='picker-toggle-btn'
 								onClick={() => setShowColorPicker(!showColorPicker)}
 							>
-								🎨 Visual Picker
+								🎨
 							</button>
-							<button className='picker-btn'>Clear All</button>
-							<div
-								style={{ display: 'flex', gap: '5px', alignItems: 'center' }}
+							<select
+								className='luminance-selector'
+								value={luminanceMode}
+								onChange={(e) => setLuminanceMode(e.target.value)}
 							>
-								<label style={{ fontSize: '12px', color: '#888' }}>
-									Luminance:
-								</label>
-								<select
-									id='luminanceModeSelector'
-									style={{
-										padding: '4px',
-										background: '#1a1a1a',
-										color: '#e0e0e0',
-										border: '1px solid #444',
-										borderRadius: '4px',
-										fontSize: '12px',
-									}}
-								>
-									<option value='ciel'>CIE L*</option>
-									<option value='hsv'>HSV</option>
-								</select>
-							</div>
+								<option value='hsv'>HSV</option>
+								<option value='ciel'>CIE L*</option>
+							</select>
 						</div>
 
-						{/* Visual Color Picker */}
 						{showColorPicker && (
-							<div
-								className='color-picker-container'
-								style={{ display: 'block' }}
-							>
-								<div className='hsv-picker'>
-									<div className='hue-slider-container'>
-										<div className='hue-slider' id='hueSlider'>
-											<div
-												className='picker-handle'
-												id='hueHandle'
-												style={{ left: '50%', top: '0%' }}
-											></div>
-										</div>
-									</div>
-
-									<div className='luminance-slider-container'>
-										<div className='luminance-slider' id='luminanceSlider'>
-											<div
-												className='picker-handle'
-												id='luminanceHandle'
-												style={{ left: '50%', top: '50%' }}
-											></div>
-										</div>
-									</div>
-
-									<div className='sv-picker' id='svPicker'>
-										<div
-											className='picker-handle'
-											id='svHandle'
-											style={{ left: '100%', top: '0%' }}
-										></div>
-									</div>
-
-									<div
-										style={{
-											display: 'flex',
-											flexDirection: 'column',
-											gap: '10px',
-										}}
-									>
-										<div
-											className='color-preview-large'
-											id='colorPreviewLarge'
-										></div>
-
-										<div className='color-input-row'>
-											<input
-												type='text'
-												id='currentHexValue'
-												style={{
-													width: '80px',
-													padding: '4px',
-													background: '#2a2a2a',
-													color: '#e0e0e0',
-													border: '1px solid #444',
-													borderRadius: '4px',
-													textAlign: 'center',
-												}}
-												placeholder='#ffffff'
-											/>
-										</div>
-
-										<div
-											className='color-values-display'
-											id='colorValuesDisplay'
-										>
-											<div>
-												HSV: <span id='hsvDisplay'>0°, 100%, 100%</span>
-											</div>
-											<div>
-												L*: <span id='luminanceDisplay'>50</span>
-											</div>
-										</div>
-
-										<div className='color-actions'>
-											<button className='picker-btn add'>Add Color</button>
-										</div>
-									</div>
+							<div className='color-picker-panel'>
+								<div className='picker-placeholder'>
+									Visual color picker (HSV cube, etc.)
 								</div>
 
-								<div className='selected-colors-list' id='selectedColorsList'>
-									<div
-										style={{
-											color: '#888',
-											fontSize: '12px',
-											alignSelf: 'center',
-										}}
-									>
-										Selected colors will appear here...
-									</div>
+								<div className='selected-colors'>
+									{colorsArray.map((color, index) => (
+										<div
+											key={index}
+											className='color-chip'
+											style={{ backgroundColor: color }}
+											title={color}
+											onClick={() => {
+												const newColors = colorsArray.filter(
+													(_, i) => i !== index
+												)
+												setSelectedColors(newColors)
+												setHexInput(newColors.join(', '))
+											}}
+										/>
+									))}
 								</div>
 							</div>
 						)}
-
-						<p
-							className='info-text'
-							style={{ marginTop: '2.5px', fontSize: '12px' }}
-						>
-							Type hex colors OR use the visual picker above • 2-8 colors
-							supported
-						</p>
-					</div>
-
-					{/* Gradient Preview */}
-					{showPreview && (
-						<div className='gradient-preview' id='previewContainer'>
-							<canvas id='gradientCanvas'></canvas>
-							<div className='range-overlay' id='leftOverlay'></div>
-							<div className='range-overlay' id='rightOverlay'></div>
-							<div id='samplePointsContainer'></div>
-						</div>
-					)}
-				</div>
-
-				{/* Controls Section */}
-				<div className='controls'>
-					<div className='control-group'>
-						<label>Sampling Range</label>
-						<div className='range-container'>
-							<div className='range-input-group'>
-								<input
-									type='range'
-									id='startRange'
-									min='0'
-									max='100'
-									defaultValue='0'
-									step='0.1'
-								/>
-								<div
-									style={{ display: 'flex', gap: '10px', alignItems: 'center' }}
-								>
-									<span className='range-value'>Start:</span>
-									<input
-										type='number'
-										id='startText'
-										min='0'
-										max='100'
-										defaultValue='0'
-										step='0.1'
-										style={{
-											width: '80px',
-											padding: '4px',
-											background: '#1a1a1a',
-											color: '#4a9eff',
-											border: '1px solid #444',
-											borderRadius: '4px',
-										}}
-									/>
-									<span style={{ color: '#4a9eff' }}>%</span>
-								</div>
-							</div>
-							<div className='range-input-group'>
-								<input
-									type='range'
-									id='endRange'
-									min='0'
-									max='100'
-									defaultValue='100'
-									step='0.1'
-								/>
-								<div
-									style={{ display: 'flex', gap: '10px', alignItems: 'center' }}
-								>
-									<span className='range-value'>End:</span>
-									<input
-										type='number'
-										id='endText'
-										min='0'
-										max='100'
-										defaultValue='100'
-										step='0.1'
-										style={{
-											width: '80px',
-											padding: '4px',
-											background: '#1a1a1a',
-											color: '#4a9eff',
-											border: '1px solid #444',
-											borderRadius: '4px',
-										}}
-									/>
-									<span style={{ color: '#4a9eff' }}>%</span>
-								</div>
-							</div>
-						</div>
-					</div>
-
-					<div className='control-group'>
-						<label>Sampling Function</label>
-						<select className='function-selector' id='functionSelector'>
-							<option value='linear'>Linear</option>
-							<option value='customExponent'>Custom Power</option>
-							<option value='customParametric'>Custom Parametric</option>
-						</select>
-
-						<div className='power-slider-group' id='powerSliderGroup'>
-							<label style={{ fontSize: '12px' }}>
-								Power: <span id='powerValue'>2.0</span>
-							</label>
-							<input
-								type='range'
-								id='powerSlider'
-								min='0.1'
-								max='5'
-								defaultValue='2'
-								step='0.1'
-							/>
-							<div
-								style={{
-									display: 'flex',
-									alignItems: 'center',
-									gap: '8px',
-									marginTop: '5px',
-								}}
-							>
-								<label style={{ fontSize: '11px', color: '#888' }}>Step:</label>
-								<input
-									type='number'
-									id='stepInput'
-									min='0.001'
-									max='1'
-									defaultValue='0.1'
-									step='0.001'
-									style={{
-										width: '60px',
-										padding: '2px 4px',
-										background: '#1a1a1a',
-										color: '#4a9eff',
-										border: '1px solid #444',
-										borderRadius: '4px',
-										fontSize: '11px',
-									}}
-								/>
-							</div>
-						</div>
-
-						<canvas className='curve-preview' id='curvePreview'></canvas>
 					</div>
 				</div>
 
-				{/* Output Section */}
-				{showOutput && (
-					<div className='output-section' id='outputSection'>
-						<div style={{ display: 'flex', justifyContent: 'space-between' }}>
-							<h2 style={{ marginBottom: '10px' }}>Current Swatch</h2>
-							<button
-								className='control-icon-btn'
-								id='reverseAllColorsBtn'
-								title='Reverse Colors'
-							>
-								🔄
-							</button>
-						</div>
+				{/* Gradient Display */}
+				{gradientImage && (
+					<GradientCanvas
+						image={gradientImage}
+						onCanvasReady={(canvas, ctx) => {
+							console.log(
+								'Canvas ready for sampling',
+								canvas.width,
+								canvas.height
+							)
+						}}
+					/>
+				)}
 
-						<div className='swatch-container' id='swatchContainer'>
-							{/* Color tiles will be generated here */}
-						</div>
+				{/* Sampling Controls */}
+				{gradientImage && (
+					<div className='controls-section'>
+						<div className='control-group'>
+							<label>Sampling Range</label>
+							<div className='range-controls'>
+								<div className='range-input'>
+									<label>Start:</label>
+									<input
+										type='range'
+										min='0'
+										max='100'
+										step='0.1'
+										value={samplingRange.start}
+										onChange={(e) =>
+											setSamplingRange((prev) => ({
+												...prev,
+												start: parseFloat(e.target.value),
+											}))
+										}
+									/>
+									<input
+										type='number'
+										min='0'
+										max='100'
+										step='0.1'
+										value={samplingRange.start}
+										onChange={(e) =>
+											setSamplingRange((prev) => ({
+												...prev,
+												start: parseFloat(e.target.value),
+											}))
+										}
+									/>
+									<span>%</span>
+								</div>
 
-						{/* Comparison Swatch */}
-						<div
-							className='swatch-container comparison-swatch'
-							id='comparisonSwatchContainer'
-							style={{ display: 'none' }}
-						></div>
-
-						<div
-							className='compare-section'
-							id='compareSection'
-							style={{ display: 'none' }}
-						>
-							<div
-								className='compare-header'
-								onClick={() => setShowCompareCollapsed(!showCompareCollapsed)}
-							>
-								<span className='compare-title'>
-									Compare Against: <span id='comparisonName'>None</span>
-								</span>
-								<button className='collapse-btn' id='compareCollapseBtn'>
-									{showCompareCollapsed ? '↓' : '↑'}
-								</button>
-							</div>
-							<div
-								className={`compare-content ${
-									showCompareCollapsed ? 'collapsed' : ''
-								}`}
-								id='compareContent'
-							>
-								<div className='compare-drop-zone' id='compareDropZone'>
-									<p className='drop-hint'>Drag a saved ramp here to compare</p>
-									<div
-										className='compare-controls'
-										id='compareControls'
-										style={{ display: 'none' }}
-									>
-										<button className='compare-control-btn'>
-											Clear Comparison
-										</button>
-										<button
-											className='compare-control-btn brightness-toggle'
-											id='brightnessToggle'
-										>
-											Show CIE L*
-										</button>
-									</div>
+								<div className='range-input'>
+									<label>End:</label>
+									<input
+										type='range'
+										min='0'
+										max='100'
+										step='0.1'
+										value={samplingRange.end}
+										onChange={(e) =>
+											setSamplingRange((prev) => ({
+												...prev,
+												end: parseFloat(e.target.value),
+											}))
+										}
+									/>
+									<input
+										type='number'
+										min='0'
+										max='100'
+										step='0.1'
+										value={samplingRange.end}
+										onChange={(e) =>
+											setSamplingRange((prev) => ({
+												...prev,
+												end: parseFloat(e.target.value),
+											}))
+										}
+									/>
+									<span>%</span>
 								</div>
 							</div>
 						</div>
 
-						<div className='save-ramp-section'>
-							<div className='save-ramp-controls'>
-								<input
-									type='text'
-									id='saveRampName'
-									className='save-ramp-name'
-									placeholder='Enter ramp name...'
-								/>
-								<button className='save-ramp-btn' id='saveRampBtn'>
-									Save Ramp
-								</button>
-							</div>
-						</div>
+						<div className='control-group'>
+							<label>Sampling Function</label>
+							<select
+								value={samplingFunction}
+								onChange={(e) => handleFunctionChange(e.target.value)}
+								className='function-selector'
+							>
+								<option value='linear'>Linear</option>
+								<option value='customExponent'>Custom Power</option>
+								<option value='customParametric'>Custom Parametric</option>
+							</select>
 
-						<div className='export-section'>
-							<h3 style={{ marginBottom: '7.5px' }}>Export Current</h3>
-							<div className='export-buttons'>
-								<button className='export-button'>Download .gpl</button>
-								<button className='export-button png-export'>
-									Download .png
-								</button>
-								<button className='export-button'>Copy to Clipboard</button>
-							</div>
-							<div className='code-output' id='codeOutput'></div>
+							{showPowerSlider && (
+								<div className='power-controls'>
+									<label>Power: {powerValue.toFixed(1)}</label>
+									<input
+										type='range'
+										min='0.1'
+										max='5'
+										step='0.1'
+										value={powerValue}
+										onChange={(e) => setPowerValue(parseFloat(e.target.value))}
+									/>
+								</div>
+							)}
 						</div>
 					</div>
 				)}
 
-				{/* Changelog Panel */}
+				{/* Changelog */}
 				<div className='changelog-section'>
 					<div
-						className='bg-gray-800 rounded-lg border border-gray-600 overflow-hidden'
-						style={{
-							marginTop: '10px',
-							background: '#2a2a2a',
-							borderRadius: '8px',
-							border: '1px solid #444',
-						}}
+						className='section-header'
+						onClick={() => setShowChangelogCollapsed(!showChangelogCollapsed)}
 					>
-						<div
-							className='panel-header'
-							onClick={() => setShowChangelogCollapsed(!showChangelogCollapsed)}
-						>
-							<span className='panel-title'>Changelog</span>
-							<button className='collapse-btn' id='changelogBtn'>
-								{showChangelogCollapsed ? '↓' : '↑'}
-							</button>
-						</div>
-						{!showChangelogCollapsed && (
-							<div className='panel-content' id='changelogContent'>
-								<div className='changelog-entry'>
-									<div className='version'>v6.6.2</div>
-									<ul>
-										<li>
-											Fixed brightness toggle - now properly shows/hides on both
-											swatches
-										</li>
-										<li>Fixed comparison swatch brightness overlay display</li>
-										<li>Improved brightness overlay toggle logic</li>
-										<li>
-											editing the hex output value in the hue cube now updates
-											the other selectors/previews
-										</li>
-										<li>one million bug fixes with the color picker</li>
-									</ul>
-								</div>
-								<div className='changelog-entry'>
-									<div className='version'>v6.6.1</div>
-									<ul>
-										<li>Added project-wide luminance algorithm selector</li>
-										<li>Fixed color picker gray/black issue</li>
-										<li>Fixed SV picker display mismatch</li>
-										<li>Fixed brightness overlay toggle functionality</li>
-										<li>Brightness overlays now respect selected algorithm</li>
-										<li>
-											Clarified HSV luminance slider behavior (color→black)
-										</li>
-									</ul>
-								</div>
+						<span>Changelog</span>
+						<button className='toggle-btn'>
+							{showChangelogCollapsed ? '↓' : '↑'}
+						</button>
+					</div>
+
+					{!showChangelogCollapsed && (
+						<div className='changelog-content'>
+							<div className='changelog-entry'>
+								<div className='version'>v7.0</div>
+								<ul>
+									<li>Complete React/NextJS port</li>
+									<li>Compact UI optimized for 960x960</li>
+									<li>Modular component architecture</li>
+									<li>Tightened file upload interface</li>
+									<li>Smart gradient visualization from palette images</li>
+									<li>Consolidated CSS architecture</li>
+								</ul>
 							</div>
-						)}
-					</div>
+						</div>
+					)}
 				</div>
 			</div>
-
-			{/* Saved Ramps Panel */}
-			<div
-				className={`saved-ramps-panel ${
-					savedRampsCollapsed ? 'collapsed' : ''
-				}`}
-				id='savedRampsPanel'
-			>
-				<div
-					className='panel-header'
-					onClick={() => setSavedRampsCollapsed(!savedRampsCollapsed)}
-				>
-					<span className='panel-title'>Saved Ramps</span>
-					<button className='collapse-btn' id='collapseBtn'>
-						{savedRampsCollapsed ? '→' : '←'}
-					</button>
-				</div>
-				<div className='panel-content' id='panelContent'>
-					<div className='empty-state' id='emptyState'>
-						No saved ramps yet.
-						<br />
-						Generate and save a ramp to get started!
-					</div>
-					<div id='savedRampsList'></div>
-
-					{/* Compact control grid */}
-					<div
-						className='ramp-controls-grid'
-						id='rampControlsGrid'
-						style={{ display: 'none' }}
-					>
-						<button
-							className='control-icon-btn'
-							id='reverseAllColorsBtn'
-							title='Reverse All Colors'
-							disabled
-						>
-							🔄
-						</button>
-						<button
-							className='control-icon-btn'
-							id='reverseRampOrderBtn'
-							title='Reverse Ramp Order'
-							disabled
-						>
-							↕️
-						</button>
-					</div>
-
-					{/* Export buttons */}
-					<button
-						className='export-all-btn'
-						id='exportAllBtn'
-						disabled
-						style={{ marginTop: '10px' }}
-					>
-						Export All (.gpl)
-					</button>
-					<button
-						className='export-all-btn png-export'
-						id='exportAllPngBtn'
-						disabled
-						style={{ marginTop: '2.5px' }}
-					>
-						Export Combined PNG
-					</button>
-				</div>
-			</div>
-
-			{/* Notification */}
-			<div className='notification' id='notification'></div>
 		</div>
 	)
 }
 
 export default GradientColorSampler
+

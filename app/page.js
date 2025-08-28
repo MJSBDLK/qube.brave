@@ -37,7 +37,7 @@ const HomePage = () => {
 					</p>
 					<div className="u-flex u-gap-sm">
 						<a href="/tools/ramps" className="c-button c-button--primary">Try It Out</a>
-						<a href="#" className="c-button c-button--ghost">View Source</a>
+						{/* <a href="#" className="c-button c-button--ghost">View Source</a> */}
 					</div>
 				</>
 			)
@@ -68,7 +68,7 @@ const HomePage = () => {
 
       {/* Sidebar Navigation */}
       <nav className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
-        <div className="nav-brand">Utility Platform</div>
+        <div className="nav-brand">qube.brave</div>
         
         <div className="nav-section">
           <div className="nav-section-title">Navigation</div>
@@ -83,7 +83,7 @@ const HomePage = () => {
           <div className="nav-section-title">Tools</div>
           <ul className="nav-list">
             <li className="nav-item">
-              <a href="/tools/gradient-ramps" className="nav-link">Gradient Ramps</a>
+              <a href="/ramps" className="nav-link">Gradient Ramps</a>
             </li>
             <li className="nav-item">
               <a href="#" className="nav-link nav-link--coming-soon">Brands Master Spreadsheet</a>
