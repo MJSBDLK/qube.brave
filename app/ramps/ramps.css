@@ -8,10 +8,6 @@
 	box-sizing: border-box;
 }
 
-html {
-	overflow-y: scroll;
-}
-
 body {
 	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
 		'Helvetica Neue', Arial, sans-serif;
@@ -46,10 +42,12 @@ h1 {
 	background: #1a1a1a;
 	color: #e0e0e0;
 	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-	min-height: 960px;
+	height: calc(100vh - 120px); /* Account for header + footer */
 	/* Prevent the column from expanding beyond grid allocation */
 	max-width: 100%;
 	overflow-x: hidden;
+	overflow-y: auto; /* Allow scrolling within the gradient sampler */
+	box-sizing: border-box;
 }
 
 /* Add small bottom margin to all direct children of gradient-sampler */

@@ -365,11 +365,6 @@ const GradientColorSampler = () => {
 				message={processing ? 'Loading image...' : 'Generating swatch...'}
 			/>
 
-			{/* Header */}
-			<div className='header-container'>
-				<h1 className='app-title'>🎨 Gradient Color Sampler v7</h1>
-			</div>
-
 			<div className='main-grid'>
 				{/* Testing Controls - Left Column (3/12) */}
 				{testingMode && (

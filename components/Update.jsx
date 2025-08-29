@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export default function Update({ key, content: {date, title, badgeType, badge, content} }) {
+export default function Update({ content: {date, title, badgeType, badge, content} }) {
 
   const [expanded, setExpanded] = useState(null);
 
@@ -9,7 +9,7 @@ export default function Update({ key, content: {date, title, badgeType, badge, c
 	}
 
 	return (
-		<div key={key} className='update-item'>
+		<div className='update-item'>
 			<div className='update-header' onClick={toggleExpanded}>
 				<div className='update-meta'>
 					<div className='update-date'>{date}</div>
