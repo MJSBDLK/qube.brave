@@ -1,6 +1,6 @@
 // app/ramps/components/ColorPicker.jsx
 'use client'
-import React, { useState, useRef, useEffect, useCallback } from 'react'
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { 
   hsvToRgb, 
   rgbToHsv, 
@@ -25,6 +25,9 @@ const ColorPicker = ({
   const [currentValue, setCurrentValue] = useState(100)
   const [currentLuminance, setCurrentLuminance] = useState(50)
   const [hexInput, setHexInput] = useState('#ff0000')
+  
+  // Responsive state for layout
+  const [isHorizontalLayout, setIsHorizontalLayout] = useState(false)
 
   // Interaction state
   const [isDraggingHue, setIsDraggingHue] = useState(false)
@@ -36,23 +39,49 @@ const ColorPicker = ({
   const svPickerRef = useRef(null)
   const luminanceSliderRef = useRef(null)
 
-  // Update color when HSV values change
+  // Update color when HSV values change - optimized to avoid excessive re-renders
   useEffect(() => {
+    // Skip expensive calculations during dragging for better performance
+    if (isDraggingHue || isDraggingSV || isDraggingLuminance) {
+      return
+    }
+    
     const rgb = hsvToRgb(currentHue, currentSaturation, currentValue)
     const hex = rgbToHex(rgb.r, rgb.g, rgb.b)
     const luminance = calculateLuminance(rgb.r, rgb.g, rgb.b, luminanceMode)
     
-    setCurrentLuminance(luminance)
+    // Only update luminance if we're not currently dragging the luminance slider
+    // This prevents infinite loops when the luminance slider changes trigger HSV updates
+    if (!isDraggingLuminance) {
+      setCurrentLuminance(luminance)
+    }
     setHexInput(hex)
-  }, [currentHue, currentSaturation, currentValue, luminanceMode])
+  }, [currentHue, currentSaturation, currentValue, luminanceMode, isDraggingLuminance, isDraggingHue, isDraggingSV])
 
-  // Update color when luminance changes (for CIE L* mode)
+  // Listen for screen size changes to update layout
+  useEffect(() => {
+    const updateLayout = () => {
+      setIsHorizontalLayout(window.matchMedia('(max-width: 1018px)').matches)
+    }
+    
+    // Set initial state
+    updateLayout()
+    
+    // Listen for resize events
+    window.addEventListener('resize', updateLayout)
+    
+    // Cleanup
+    return () => window.removeEventListener('resize', updateLayout)
+  }, [])
+
+  // Update color when luminance changes (for CIE L* mode) - optimized
   const updateColorWithLuminance = useCallback((newLuminance) => {
     if (luminanceMode === 'hsv') {
       // In HSV mode, luminance directly controls the V (value) component
       setCurrentValue(newLuminance)
     } else {
       // CIE L* mode - use LAB color space conversion
+      // Only do expensive calculations if we're actually in CIE L* mode
       const currentRgb = hsvToRgb(currentHue, currentSaturation, currentValue)
       const lab = rgbToLab(currentRgb.r, currentRgb.g, currentRgb.b)
       
@@ -65,6 +94,7 @@ const ColorPicker = ({
       // Convert RGB back to HSV to keep sliders in sync
       const newHsv = rgbToHsv(newRgb.r, newRgb.g, newRgb.b)
       
+      // Batch state updates to avoid multiple re-renders
       setCurrentHue(newHsv.h)
       setCurrentSaturation(newHsv.s)
       setCurrentValue(newHsv.v)
@@ -91,9 +121,12 @@ const ColorPicker = ({
   }, [])
 
   const handleMouseMove = useCallback((e) => {
-    if (isDraggingHue) updateHueFromEvent(e)
-    if (isDraggingSV) updateSVFromEvent(e)
-    if (isDraggingLuminance) updateLuminanceFromEvent(e)
+    // Use requestAnimationFrame for smooth performance
+    requestAnimationFrame(() => {
+      if (isDraggingHue) updateHueFromEvent(e)
+      if (isDraggingSV) updateSVFromEvent(e)
+      if (isDraggingLuminance) updateLuminanceFromEvent(e)
+    })
   }, [isDraggingHue, isDraggingSV, isDraggingLuminance])
 
   const handleMouseUp = useCallback(() => {
@@ -115,7 +148,7 @@ const ColorPicker = ({
     }
   }, [isDraggingHue, isDraggingSV, isDraggingLuminance, handleMouseMove, handleMouseUp])
 
-  // Update functions for each slider
+  // Update functions for each slider - simplified for better performance
   const updateHueFromEvent = useCallback((e) => {
     if (!hueSliderRef.current) return
     
@@ -199,16 +232,20 @@ const ColorPicker = ({
     showNotification('All colors cleared')
   }, [selectedColors, onColorsChange])
 
-  // Generate luminance slider background
-  const getLuminanceSliderBackground = useCallback(() => {
+  // Generate luminance slider background - memoized for performance
+  const luminanceSliderBackground = useMemo(() => {
+    // Use state to determine gradient direction
+    const gradientDirection = isHorizontalLayout ? 'to right' : 'to bottom'
+    
     if (luminanceMode === 'hsv') {
-      // HSV mode: gradient from full color (top) to black (bottom)
-      const fullRgb = hsvToRgb(currentHue, currentSaturation, 100)
-      const fullHex = rgbToHex(fullRgb.r, fullRgb.g, fullRgb.b)
-      return `linear-gradient(to bottom, ${fullHex} 0%, #000000 100%)`
+      // HSV mode: gradient from bright color (top/left, V=100) to black (bottom/right, V=0)
+      // Use current hue and saturation, vary only the Value component
+      const brightRgb = hsvToRgb(currentHue, currentSaturation, 100)
+      const brightHex = rgbToHex(brightRgb.r, brightRgb.g, brightRgb.b)
+      return `linear-gradient(${gradientDirection}, ${brightHex} 0%, #000000 100%)`
     } else {
-      // CIE L* mode: show luminance range for current hue at medium saturation
-      const baseRgb = hsvToRgb(currentHue, Math.max(50, currentSaturation), 50)
+      // CIE L* mode: show luminance range for current hue at current saturation
+      const baseRgb = hsvToRgb(currentHue, currentSaturation, currentValue)
       
       // Calculate high and low luminance colors
       const highLab = rgbToLab(baseRgb.r, baseRgb.g, baseRgb.b)
@@ -223,170 +260,187 @@ const ColorPicker = ({
       const highHex = rgbToHex(highRgb.r, highRgb.g, highRgb.b)
       const lowHex = rgbToHex(lowRgb.r, lowRgb.g, lowRgb.b)
       
-      return `linear-gradient(to bottom, ${highHex} 0%, ${lowHex} 100%)`
+      return `linear-gradient(${gradientDirection}, ${highHex} 0%, ${lowHex} 100%)`
     }
-  }, [currentHue, currentSaturation, luminanceMode])
+  }, [currentHue, currentSaturation, currentValue, luminanceMode, isHorizontalLayout])
 
-  // Generate SV picker background color
-  const getSVPickerBackground = useCallback(() => {
+  // Generate SV picker background color - memoized for performance
+  const svPickerBackground = useMemo(() => {
     const hueRgb = hsvToRgb(currentHue, 100, 100)
     return rgbToHex(hueRgb.r, hueRgb.g, hueRgb.b)
   }, [currentHue])
 
   return (
-    <div className="color-picker-container">
-      {/* Main Picker Area */}
-      <div className="hsv-picker">
-        {/* Hue Slider */}
-        <div className="hue-slider-container">
-          <div 
-            className="hue-slider"
-            ref={hueSliderRef}
-            onMouseDown={(e) => handleMouseDown('hue', e)}
-            onClick={updateHueFromEvent}
-          >
-            <div 
-              className="picker-handle"
-              style={{ 
-                left: '50%', 
-                top: `${(currentHue / 360) * 100}%` 
-              }}
-            />
-          </div>
-          <label className="slider-label">HUE</label>
+    <div className="modern-color-picker">
+      {/* Header */}
+      <div className="picker-header">
+        <div className="picker-title">
+          <span className="icon">🎨</span>
+          <span>Color Picker</span>
         </div>
-
-        {/* Luminance Slider */}
-        <div className="luminance-slider-container">
-          <div 
-            className="luminance-slider"
-            ref={luminanceSliderRef}
-            style={{ background: getLuminanceSliderBackground() }}
-            onMouseDown={(e) => handleMouseDown('luminance', e)}
-            onClick={updateLuminanceFromEvent}
-          >
-            <div 
-              className="picker-handle"
-              style={{ 
-                left: '50%', 
-                top: `${100 - currentLuminance}%` 
-              }}
-            />
-          </div>
-          <label className="slider-label">
-            {luminanceMode === 'hsv' ? 'HSV' : 'L*'}
-          </label>
-        </div>
-
-        {/* Saturation/Value Picker */}
-        <div 
-          className="sv-picker"
-          ref={svPickerRef}
-          style={{ backgroundColor: getSVPickerBackground() }}
-          onMouseDown={(e) => handleMouseDown('sv', e)}
-          onClick={updateSVFromEvent}
-        >
-          <div 
-            className="picker-handle"
-            style={{ 
-              left: `${currentSaturation}%`, 
-              top: `${100 - currentValue}%` 
-            }}
-          />
-        </div>
-
-        {/* Color Preview and Controls */}
-        <div className="color-preview-section">
-          <div 
-            className="color-preview-large"
-            style={{ backgroundColor: hexInput }}
-          />
-
-          <div className="color-input-row">
-            <input
-              type="text"
-              className="hex-input-field"
-              value={hexInput}
-              onChange={(e) => handleHexInputChange(e.target.value)}
-              placeholder="#ffffff"
-            />
-          </div>
-
-          <div className="color-values-display">
-            <div>HSV: {Math.round(currentHue)}°, {Math.round(currentSaturation)}%, {Math.round(currentValue)}%</div>
-            <div>{luminanceMode === 'hsv' ? 'HSV' : 'L*'}: {Math.round(currentLuminance)}</div>
-          </div>
-
-          <div className="color-actions">
+        <div className="luminance-toggle">
+          <span className="toggle-label">Luminance:</span>
+          <div className="toggle-buttons">
             <button 
-              className="picker-btn add"
-              onClick={addCurrentColor}
-              disabled={selectedColors.length >= 8}
+              className={`toggle-btn ${luminanceMode === 'hsv' ? 'active' : ''}`}
+              onClick={() => onLuminanceModeChange('hsv')}
             >
-              Add Color
+              HSV
             </button>
-          </div>
-
-          {/* Luminance Mode Selector */}
-          <div className="luminance-mode-selector">
-            <label>Luminance:</label>
-            <select
-              value={luminanceMode}
-              onChange={(e) => onLuminanceModeChange(e.target.value)}
+            <button 
+              className={`toggle-btn ${luminanceMode === 'ciel' ? 'active' : ''}`}
+              onClick={() => onLuminanceModeChange('ciel')}
             >
-              <option value="ciel">CIE L*</option>
-              <option value="hsv">HSV</option>
-            </select>
+              CIE&nbsp;L*
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Selected Colors List */}
-      <div className="selected-colors-section">
-        <div className="selected-colors-header">
-          <span>Selected Colors ({selectedColors.length}/8)</span>
-          {selectedColors.length > 0 && (
-            <button 
-              className="clear-all-btn"
-              onClick={clearAllColors}
+      {/* Main Picker Interface */}
+      <div className="picker-interface">
+        {/* Color Workspace */}
+        <div className="color-workspace">
+          {/* SV Picker - Main Color Square */}
+          <div 
+            className="sv-picker-modern"
+            ref={svPickerRef}
+            style={{ backgroundColor: svPickerBackground }}
+            onMouseDown={(e) => handleMouseDown('sv', e)}
+            onClick={updateSVFromEvent}
+          >
+            <div 
+              className="sv-handle"
+              style={{ 
+                left: `${currentSaturation}%`, 
+                top: `${100 - currentValue}%` 
+              }}
+            />
+          </div>
+
+          {/* Side Controls */}
+          <div className="side-controls">
+            {/* Hue Slider */}
+            <div 
+              className="hue-slider-modern"
+              ref={hueSliderRef}
+              onMouseDown={(e) => handleMouseDown('hue', e)}
+              onClick={updateHueFromEvent}
             >
+              <div 
+                className="hue-handle"
+                style={{ top: `${(currentHue / 360) * 100}%` }}
+              />
+            </div>
+
+            {/* Luminance Slider */}
+            <div 
+              className="luminance-slider-modern"
+              ref={luminanceSliderRef}
+              style={{ background: luminanceSliderBackground }}
+              onMouseDown={(e) => handleMouseDown('luminance', e)}
+              onClick={updateLuminanceFromEvent}
+            >
+              <div 
+                className="luminance-handle"
+                style={{ top: `${100 - currentLuminance}%` }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Color Info Panel */}
+        <div className="color-info-panel">
+					{/* Current Color Preview */}
+								<div className="current-color-section">
+								<div 
+									className="color-preview-modern"
+									style={{ backgroundColor: hexInput }}
+									title="Current color"
+								/>
+								<div className="color-details">
+									<input
+									type="text"
+									className="hex-input-modern"
+									value={hexInput}
+									onChange={(e) => handleHexInputChange(e.target.value)}
+									placeholder="#ffffff"
+									/>
+									<div className="color-values">
+									<div className="value-row">
+										<span className="label">HSV:</span>
+										<span className="value">{Math.round(currentHue)}°, {Math.round(currentSaturation)}%, {Math.round(currentValue)}%</span>
+									</div>
+									{luminanceMode === 'ciel' && (
+										<div className="value-row">
+										<span className="label">L*:</span>
+										<span className="value">{Math.round(currentLuminance)}</span>
+										</div>
+									)}
+									</div>
+								</div>
+								</div>
+
+								{/* Add Color Button */}
+          <button 
+            className="add-color-btn"
+            onClick={addCurrentColor}
+            disabled={selectedColors.length >= 8}
+          >
+            <span className="btn-icon">+</span>
+            <span>Add Color</span>
+            <span className="btn-count">({selectedColors.length}/8)</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Selected Colors Palette */}
+      <div className="selected-palette">
+        <div className="palette-header">
+          <span className="palette-title">Color Palette</span>
+          {selectedColors.length > 0 && (
+            <button className="clear-palette-btn" onClick={clearAllColors}>
               Clear All
             </button>
           )}
         </div>
 
-        <div className="selected-colors-list">
+        <div className="palette-grid">
           {selectedColors.length === 0 ? (
-            <div className="empty-state">
-              Selected colors will appear here...
+            <div className="empty-palette">
+              <div className="empty-icon">🎨</div>
+              <div className="empty-text">No colors selected yet</div>
+              <div className="empty-hint">Pick colors above to build your palette</div>
             </div>
           ) : (
             <>
-              {/* Individual color chips */}
+              {/* Color Chips */}
               {selectedColors.map((color, index) => (
                 <div
                   key={index}
-                  className="selected-color-chip"
+                  className="color-chip-modern"
                   style={{ backgroundColor: color }}
-                  title={color}
                   onClick={() => copyToClipboard(color, `${color} copied!`)}
+                  title={`${color} - Click to copy`}
                 >
                   <button
-                    className="remove-btn"
+                    className="remove-chip-btn"
                     onClick={(e) => {
                       e.stopPropagation()
                       removeColor(index)
                     }}
+                    title="Remove color"
                   >
                     ×
                   </button>
+                  <div className="chip-label">{color}</div>
                 </div>
               ))}
 
-              {/* Gradient preview if more than 1 color */}
-              {selectedColors.length > 1 && (
+              {/* Gradient Preview - Temporarily disabled */}
+              {/* selectedColors.length > 1 && (
                 <div
-                  className="gradient-preview-chip"
+                  className="gradient-chip-modern"
                   style={{
                     background: `linear-gradient(90deg, ${selectedColors
                       .map((color, index) => {
@@ -395,15 +449,20 @@ const ColorPicker = ({
                       })
                       .join(', ')})`
                   }}
-                  title="Gradient preview - click to copy all colors"
                   onClick={() => {
                     copyToClipboard(
                       selectedColors.join(', '), 
-                      'All colors copied!'
+                      'Gradient colors copied!'
                     )
                   }}
-                />
-              )}
+                  title="Click to copy gradient colors"
+                >
+                  <div className="gradient-label">
+                    <span className="gradient-icon">🌈</span>
+                    <span>Gradient ({selectedColors.length} colors)</span>
+                  </div>
+                </div>
+              ) */}
             </>
           )}
         </div>

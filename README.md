@@ -44,3 +44,7 @@ npm run dev          # Start development server
 npm run db:studio    # Open Prisma Studio
 npm run db:migrate   # Apply database changes
 ```
+
+```bash
+npx stylelint app/ramps/ramps.css # How to run the linter on a CSS file
+```

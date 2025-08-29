@@ -23,7 +23,7 @@ const testingMode = true
 // Main Component
 const GradientColorSampler = () => {
 	// #region State Management
-	const [showColorPicker, setShowColorPicker] = useState(false)
+	const [showColorPicker, setShowColorPicker] = useState(testingMode ? true : false)
 	const [hexInput, setHexInput] = useState('')
 	const [colorsArray, setSelectedColors] = useState([])
 	const [samplingRange, setSamplingRange] = useState({ start: 0, end: 100 })
@@ -461,14 +461,14 @@ const GradientColorSampler = () => {
 							>
 								{showColorPicker ? '✕ Hide' : '🎨 Picker'}
 							</button>
-							<select
+							{/* <select
 								className='luminance-selector'
 								value={luminanceMode}
 								onChange={(e) => updateLuminanceMode(e.target.value)}
 							>
 								<option value='hsv'>HSV</option>
 								<option value='ciel'>CIE L*</option>
-							</select>
+							</select> */}
 						</div>
 
 						{showColorPicker && (
