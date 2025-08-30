@@ -34,10 +34,12 @@ const ColorPicker = ({
   const [isDraggingSV, setIsDraggingSV] = useState(false)
   const [isDraggingLuminance, setIsDraggingLuminance] = useState(false)
 
-  // Refs for sliders
+  // Refs for sliders and layout detection
   const hueSliderRef = useRef(null)
   const svPickerRef = useRef(null)
   const luminanceSliderRef = useRef(null)
+  const colorWorkspaceRef = useRef(null)
+  const pickerInterfaceRef = useRef(null)
 
   // Update color when HSV values change - optimized to avoid excessive re-renders
   useEffect(() => {
@@ -61,17 +63,74 @@ const ColorPicker = ({
   // Listen for screen size changes to update layout
   useEffect(() => {
     const updateLayout = () => {
-      setIsHorizontalLayout(window.matchMedia('(max-width: 1018px)').matches)
+      // Check if color-workspace content has wrapped
+      if (colorWorkspaceRef.current) {
+        const workspace = colorWorkspaceRef.current
+        const svPicker = workspace.querySelector('.sv-picker-modern')
+        const sideControls = workspace.querySelector('.side-controls')
+        
+        if (svPicker && sideControls) {
+          // Get the positions of the SV picker and side controls
+          const svRect = svPicker.getBoundingClientRect()
+          const sideRect = sideControls.getBoundingClientRect()
+          const workspaceRect = workspace.getBoundingClientRect()
+          
+          // More robust wrapping detection:
+          // 1. Check if side controls are below the SV picker (wrapped)
+          // 2. OR if workspace is too narrow (< 380px for comfortable layout)
+          // 3. OR if picker interface itself is too narrow
+          const hasWrappedVertically = sideRect.top > svRect.bottom + 10
+          const isWorkspaceNarrow = workspaceRect.width < 380
+          const isPanelSquished = pickerInterfaceRef.current && 
+            pickerInterfaceRef.current.getBoundingClientRect().width < 550
+          
+          const hasWrapped = hasWrappedVertically || isWorkspaceNarrow || isPanelSquished
+          
+          // Only update if the state has actually changed to avoid unnecessary re-renders
+          setIsHorizontalLayout(prev => {
+            if (prev !== hasWrapped) {
+              console.log(`🎨 Layout switched to: ${hasWrapped ? 'HORIZONTAL' : 'VERTICAL'}`, {
+                workspaceWidth: workspaceRect.width,
+                pickerInterfaceWidth: pickerInterfaceRef.current?.getBoundingClientRect().width,
+                wrappedVertically: hasWrappedVertically,
+                workspaceNarrow: isWorkspaceNarrow,
+                panelSquished: isPanelSquished
+              })
+              return hasWrapped
+            }
+            return prev
+          })
+        }
+      }
     }
     
     // Set initial state
-    updateLayout()
+    setTimeout(updateLayout, 100) // Small delay to ensure DOM is rendered
     
-    // Listen for resize events
+    // Use ResizeObserver for more accurate layout detection
+    const resizeObserver = new ResizeObserver(() => {
+      // Debounce the update to avoid excessive calls
+      clearTimeout(updateLayout.timeoutId)
+      updateLayout.timeoutId = setTimeout(updateLayout, 50)
+    })
+    
+    if (colorWorkspaceRef.current) {
+      resizeObserver.observe(colorWorkspaceRef.current)
+    }
+    
+    if (pickerInterfaceRef.current) {
+      resizeObserver.observe(pickerInterfaceRef.current)
+    }
+    
+    // Fallback: also listen for window resize
     window.addEventListener('resize', updateLayout)
     
     // Cleanup
-    return () => window.removeEventListener('resize', updateLayout)
+    return () => {
+      resizeObserver.disconnect()
+      window.removeEventListener('resize', updateLayout)
+      clearTimeout(updateLayout.timeoutId)
+    }
   }, [])
 
   // Update color when luminance changes (for CIE L* mode) - optimized
@@ -153,10 +212,20 @@ const ColorPicker = ({
     if (!hueSliderRef.current) return
     
     const rect = hueSliderRef.current.getBoundingClientRect()
-    const y = e.clientY - rect.top
-    const percentage = Math.max(0, Math.min(100, (y / rect.height) * 100))
+    
+    let percentage
+    if (isHorizontalLayout) {
+      // Horizontal layout: use X position
+      const x = e.clientX - rect.left
+      percentage = Math.max(0, Math.min(100, (x / rect.width) * 100))
+    } else {
+      // Vertical layout: use Y position
+      const y = e.clientY - rect.top
+      percentage = Math.max(0, Math.min(100, (y / rect.height) * 100))
+    }
+    
     setCurrentHue((percentage / 100) * 360)
-  }, [])
+  }, [isHorizontalLayout])
 
   const updateSVFromEvent = useCallback((e) => {
     if (!svPickerRef.current) return
@@ -176,13 +245,22 @@ const ColorPicker = ({
     if (!luminanceSliderRef.current) return
     
     const rect = luminanceSliderRef.current.getBoundingClientRect()
-    const y = e.clientY - rect.top
-    const percentage = Math.max(0, Math.min(100, (y / rect.height) * 100))
-    const newLuminance = 100 - percentage
     
+    let percentage
+    if (isHorizontalLayout) {
+      // Horizontal layout: use X position
+      const x = e.clientX - rect.left
+      percentage = Math.max(0, Math.min(100, (x / rect.width) * 100))
+    } else {
+      // Vertical layout: use Y position
+      const y = e.clientY - rect.top
+      percentage = Math.max(0, Math.min(100, (y / rect.height) * 100))
+    }
+    
+    const newLuminance = 100 - percentage
     setCurrentLuminance(newLuminance)
     updateColorWithLuminance(newLuminance)
-  }, [updateColorWithLuminance])
+  }, [updateColorWithLuminance, isHorizontalLayout])
 
   // Handle hex input changes
   const handleHexInputChange = useCallback((value) => {
@@ -277,6 +355,15 @@ const ColorPicker = ({
         <div className="picker-title">
           <span className="icon">🎨</span>
           <span>Color Picker</span>
+          {/* Layout indicator - can be removed later */}
+          <span style={{ 
+            fontSize: '10px', 
+            color: isHorizontalLayout ? '#ff6b6b' : '#4a9eff',
+            marginLeft: '8px',
+            fontWeight: 'bold'
+          }}>
+            {isHorizontalLayout ? 'H' : 'V'}
+          </span>
         </div>
         <div className="luminance-toggle">
           <span className="toggle-label">Luminance:</span>
@@ -298,9 +385,9 @@ const ColorPicker = ({
       </div>
 
       {/* Main Picker Interface */}
-      <div className="picker-interface">
+      <div className="picker-interface" ref={pickerInterfaceRef}>
         {/* Color Workspace */}
-        <div className="color-workspace">
+        <div className={`color-workspace ${isHorizontalLayout ? 'wrapped' : ''}`} ref={colorWorkspaceRef}>
           {/* SV Picker - Main Color Square */}
           <div 
             className="sv-picker-modern"
@@ -319,7 +406,7 @@ const ColorPicker = ({
           </div>
 
           {/* Side Controls */}
-          <div className="side-controls">
+          <div className={`side-controls ${isHorizontalLayout ? 'horizontal' : 'vertical'}`}>
             {/* Hue Slider */}
             <div 
               className="hue-slider-modern"
@@ -329,7 +416,10 @@ const ColorPicker = ({
             >
               <div 
                 className="hue-handle"
-                style={{ top: `${(currentHue / 360) * 100}%` }}
+                style={isHorizontalLayout ? 
+                  { left: `${(currentHue / 360) * 100}%` } : 
+                  { top: `${(currentHue / 360) * 100}%` }
+                }
               />
             </div>
 
@@ -343,7 +433,10 @@ const ColorPicker = ({
             >
               <div 
                 className="luminance-handle"
-                style={{ top: `${100 - currentLuminance}%` }}
+                style={isHorizontalLayout ? 
+                  { left: `${100 - currentLuminance}%` } : 
+                  { top: `${100 - currentLuminance}%` }
+                }
               />
             </div>
           </div>

@@ -53,6 +53,23 @@
 
 	--transition-fast: 150ms ease-out;
 	--transition-normal: 250ms ease-out;
+
+	/* Layout dimensions */
+	--sidebar-width: 280px;
+	--header-height: 60px;
+	--footer-height: 60px;
+	--header-footer-height: 120px; /* Header + footer combined */
+	
+	/* Responsive breakpoints and content widths */
+	--content-max-width-sm: 1200px;
+	--content-max-width-md: 1400px;
+	--content-max-width-lg: 1600px;
+	--content-max-width-xl: 2000px;
+	
+	/* Container max widths for responsive layout */
+	--container-max-width-lg: 1400px;
+	--container-max-width-xl: 1600px;
+	--container-max-width-2xl: 2000px;
 }
 
 *,
@@ -159,7 +176,7 @@ body {
 	top: 0;
 	left: 0;
 	right: 0;
-	height: 60px;
+	height: var(--header-height);
 	border-bottom: 1px solid var(--border-primary);
 	z-index: 200;
 	backdrop-filter: blur(10px);
@@ -288,7 +305,7 @@ body {
 
 /* Sidebar Styles */
 .sidebar {
-	width: 280px;
+	width: var(--sidebar-width);
 	height: 100vh;
 	background-color: var(--bg-secondary);
 	border-right: 1px solid var(--border-primary);
@@ -333,7 +350,7 @@ body {
 	justify-content: space-between;
 	padding: var(--space-lg);
 	border-bottom: 1px solid var(--border-primary);
-	min-height: 60px;
+	min-height: var(--header-height);
 }
 
 .sidebar-brand {
@@ -425,16 +442,16 @@ body {
 /* Main Content */
 .main-content {
 	flex: 1;
-	padding-top: 60px; /* Account for fixed header */
+	padding-top: var(--header-height); /* Account for fixed header */
 	padding-left: var(--space-2xl);
 	padding-right: var(--space-2xl);
-	padding-bottom: 60px; /* Account for footer */
-	max-width: 1200px;
+	padding-bottom: var(--footer-height); /* Account for footer */
+	max-width: var(--content-max-width-sm);
 	margin: 0 auto;
 	width: 100%;
 	overflow-y: auto; /* Make content scrollable */
 	overflow-x: hidden; /* Prevent horizontal overflow */
-	height: calc(100vh - 120px); /* Header + footer height */
+	height: calc(100vh - var(--header-footer-height)); /* Header + footer height */
 	box-sizing: border-box; /* Include padding in width calculation */
 }
 
@@ -442,8 +459,8 @@ body {
 .main-content.subpage {
 	padding-left: 0;
 	padding-right: 0;
-	padding-top: 60px; /* Keep header offset */
-	padding-bottom: 60px; /* Keep footer offset */
+	padding-top: var(--header-height); /* Keep header offset */
+	padding-bottom: var(--footer-height); /* Keep footer offset */
 	max-width: none;
 	width: 100%;
 	margin: 0;
@@ -471,7 +488,7 @@ body {
 	bottom: 0;
 	left: 0;
 	right: 0;
-	height: 60px;
+	height: var(--footer-height);
 	border-top: 1px solid var(--border-primary);
 	z-index: 200;
 	backdrop-filter: blur(10px);
@@ -1515,7 +1532,7 @@ body {
 .main-content {
 	padding-left: var(--space-lg);
 	padding-right: var(--space-lg);
-	height: calc(100vh - 120px);
+	height: calc(100vh - var(--header-footer-height));
 	overflow-y: auto;
 	box-sizing: border-box;
 }
@@ -1602,10 +1619,10 @@ body {
 	/* Homepage: main content with sidebar offset */
 	.app-layout.homepage .main-content {
 		position: fixed;
-		top: 60px;
-		left: 280px;
-		width: calc(100vw - 280px);
-		height: calc(100vh - 120px);
+		top: var(--header-height);
+		left: var(--sidebar-width);
+		width: calc(100vw - var(--sidebar-width));
+		height: calc(100vh - var(--header-footer-height));
 		padding: var(--space-2xl);
 		overflow-y: auto;
 		overflow-x: hidden;
@@ -1615,10 +1632,10 @@ body {
 	/* Subpages: full width, no sidebar offset, no padding */
 	.app-layout.subpage .main-content {
 		position: fixed;
-		top: 60px;
+		top: var(--header-height);
 		left: 0;
 		width: 100vw;
-		height: calc(100vh - 120px);
+		height: calc(100vh - var(--header-footer-height));
 		padding: 0;
 		overflow: hidden; /* Prevent double scrollbar */
 		box-sizing: border-box;
@@ -1665,10 +1682,14 @@ body {
 	.app-layout.homepage .main-content {
 		padding-left: var(--space-3xl);
 		padding-right: var(--space-3xl);
+		max-width: none; /* Remove max-width constraint since we're using fixed positioning */
 	}
 
 	.app-layout.subpage .main-content {
 		padding: 0; /* No padding on subpages */
+		max-width: none;
+		margin: 0;
+		width: 100vw;
 	}
 
 	.hero-section {
@@ -1680,20 +1701,21 @@ body {
 @media (min-width: 1440px) {
 	.header-content,
 	.footer-content {
-		max-width: 1400px;
+		max-width: var(--container-max-width-lg);
 		margin: 0 auto;
 	}
 
 	.app-layout.homepage .main-content {
-		max-width: 1200px;
-		margin-left: calc(280px + (100vw - 1400px) / 2);
-		margin-right: auto;
+		/* Keep the positioning as-is, just add content centering */
+		padding-left: max(var(--space-3xl), calc((100vw - var(--sidebar-width) - var(--content-max-width-sm)) / 2));
+		padding-right: max(var(--space-3xl), calc((100vw - var(--sidebar-width) - var(--content-max-width-sm)) / 2));
 	}
 
 	.app-layout.subpage .main-content {
 		max-width: none; /* Full width on subpages */
 		margin: 0;
 		width: 100vw;
+		left: 0;
 	}
 }
 
@@ -1701,18 +1723,20 @@ body {
 @media (min-width: 1920px) {
 	.header-content,
 	.footer-content {
-		max-width: 1600px;
+		max-width: var(--container-max-width-xl);
 	}
 
 	.app-layout.homepage .main-content {
-		max-width: 1400px;
-		margin-left: calc(280px + (100vw - 1600px) / 2);
+		/* Center content within the available space after sidebar */
+		padding-left: max(var(--space-3xl), calc((100vw - var(--sidebar-width) - var(--content-max-width-md)) / 2));
+		padding-right: max(var(--space-3xl), calc((100vw - var(--sidebar-width) - var(--content-max-width-md)) / 2));
 	}
 
 	.app-layout.subpage .main-content {
 		max-width: none; /* Full width on subpages */
 		margin: 0;
 		width: 100vw;
+		left: 0;
 	}
 }
 
@@ -1720,18 +1744,20 @@ body {
 @media (min-width: 2560px) {
 	.header-content,
 	.footer-content {
-		max-width: 2000px;
+		max-width: var(--container-max-width-2xl);
 	}
 
 	.app-layout.homepage .main-content {
-		max-width: 1600px;
-		margin-left: calc(280px + (100vw - 2000px) / 2);
+		/* Center content within the available space after sidebar */
+		padding-left: max(var(--space-3xl), calc((100vw - var(--sidebar-width) - var(--content-max-width-lg)) / 2));
+		padding-right: max(var(--space-3xl), calc((100vw - var(--sidebar-width) - var(--content-max-width-lg)) / 2));
 	}
 
 	.app-layout.subpage .main-content {
 		max-width: none; /* Full width on subpages */
 		margin: 0;
 		width: 100vw;
+		left: 0;
 	}
 
 	.text-display {

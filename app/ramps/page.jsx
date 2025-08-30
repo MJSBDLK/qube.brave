@@ -10,20 +10,22 @@ import ColorPicker from './components/ColorPicker'
 import { useColorSampling } from './hooks/useColorSampling'
 import { useSavedRamps } from './hooks/useSavedRamps'
 import { parseHexColors, calculateLuminance } from './utils/colorUtils'
-import { 
-  debounce, 
-  showNotification, 
-  copyToClipboard,
-  resizeImageIfNeeded,
-  PerformanceIndicator 
+import {
+	debounce,
+	showNotification,
+	copyToClipboard,
+	resizeImageIfNeeded,
+	PerformanceIndicator,
 } from './utils/performanceUtils'
 
-const testingMode = true
+const testingMode = false
 
 // Main Component
 const GradientColorSampler = () => {
 	// #region State Management
-	const [showColorPicker, setShowColorPicker] = useState(testingMode ? true : false)
+	const [showColorPicker, setShowColorPicker] = useState(
+		testingMode ? true : false
+	)
 	const [hexInput, setHexInput] = useState('')
 	const [colorsArray, setSelectedColors] = useState([])
 	const [samplingRange, setSamplingRange] = useState({ start: 0, end: 100 })
@@ -39,7 +41,7 @@ const GradientColorSampler = () => {
 	const [showLuminance, setShowLuminance] = useState('none')
 	const [comparisonRamp, setComparisonRamp] = useState(null)
 	const [showComparisonSection, setShowComparisonSection] = useState(false)
-	
+
 	// Use the color sampling hook
 	const {
 		generatedColors,
@@ -55,7 +57,7 @@ const GradientColorSampler = () => {
 		exportAsPNG,
 		exportAsGPL,
 		hasColors,
-		colorCount
+		colorCount,
 	} = useColorSampling()
 
 	// Use the saved ramps hook
@@ -73,7 +75,7 @@ const GradientColorSampler = () => {
 		clearRamps,
 		reorderRamps,
 		reverseSavedRamp,
-		reverseAllRamps
+		reverseAllRamps,
 	} = useSavedRamps()
 	// #endregion /State Management
 
@@ -81,7 +83,7 @@ const GradientColorSampler = () => {
 	const handleImageUpload = useCallback((file) => {
 		setProcessing(true)
 		showNotification('Loading image...')
-		
+
 		const img = new Image()
 		img.onload = () => {
 			// Resize large images for better performance
@@ -121,26 +123,34 @@ const GradientColorSampler = () => {
 		setSelectedColors(colors)
 
 		// Debounce gradient creation for better performance
-		debounce('hex-gradient', () => {
-			if (validateColors(colors)) {
-				createCanvasGradient(colors)
-			}
-		}, 300)
+		debounce(
+			'hex-gradient',
+			() => {
+				if (validateColors(colors)) {
+					createCanvasGradient(colors)
+				}
+			},
+			300
+		)
 	}, [])
 
 	// Handle color picker changes
 	const handleColorPickerChange = useCallback((colors) => {
 		setSelectedColors(colors)
 		setHexInput(colors.join(', '))
-		
+
 		// Debounce gradient creation for better performance
-		debounce('picker-gradient', () => {
-			if (validateColors(colors)) {
-				createCanvasGradient(colors)
-			}
-		}, 300)
+		debounce(
+			'picker-gradient',
+			() => {
+				if (validateColors(colors)) {
+					createCanvasGradient(colors)
+				}
+			},
+			300
+		)
 	}, [])
-	
+
 	const validateColors = (colorsArray) => {
 		if (!colorsArray || colorsArray.length < 2 || colorsArray.length > 8) {
 			return false
@@ -183,65 +193,92 @@ const GradientColorSampler = () => {
 		})
 	}, [])
 
-	const handleFunctionChange = useCallback((value) => {
-		setSamplingFunction(value)
-		setShowPowerSlider(
-			value === 'customExponent' || value === 'customParametric'
-		)
-		
-		// Trigger swatch regeneration if we have an image
-		if (gradientImage) {
-			debouncedGenerateSwatch({
-				startRange: samplingRange.start,
-				endRange: samplingRange.end,
-				samplingFunction: value,
-				powerValue: powerValue,
-				sampleCount
-			})
-		}
-	}, [gradientImage, samplingRange, powerValue, sampleCount, debouncedGenerateSwatch])
+	const handleFunctionChange = useCallback(
+		(value) => {
+			setSamplingFunction(value)
+			setShowPowerSlider(
+				value === 'customExponent' || value === 'customParametric'
+			)
 
-	// Handle range changes with throttling for smooth updates
-	const handleRangeChange = useCallback((field, value) => {
-		setSamplingRange(prev => {
-			const newRange = { ...prev, [field]: parseFloat(value) }
-			
-			// Validate range order
-			if (field === 'start' && newRange.start > newRange.end) {
-				newRange.end = newRange.start
-			} else if (field === 'end' && newRange.end < newRange.start) {
-				newRange.start = newRange.end
-			}
-			
 			// Trigger swatch regeneration if we have an image
 			if (gradientImage) {
-				throttledGenerateSwatch({
-					startRange: newRange.start,
-					endRange: newRange.end,
-					samplingFunction,
-					powerValue,
-					sampleCount
+				debouncedGenerateSwatch({
+					startRange: samplingRange.start,
+					endRange: samplingRange.end,
+					samplingFunction: value,
+					powerValue: powerValue,
+					sampleCount,
 				})
 			}
-			
-			return newRange
-		})
-	}, [gradientImage, samplingFunction, powerValue, sampleCount, throttledGenerateSwatch])
+		},
+		[
+			gradientImage,
+			samplingRange,
+			powerValue,
+			sampleCount,
+			debouncedGenerateSwatch,
+		]
+	)
+
+	// Handle range changes with throttling for smooth updates
+	const handleRangeChange = useCallback(
+		(field, value) => {
+			setSamplingRange((prev) => {
+				const newRange = { ...prev, [field]: parseFloat(value) }
+
+				// Validate range order
+				if (field === 'start' && newRange.start > newRange.end) {
+					newRange.end = newRange.start
+				} else if (field === 'end' && newRange.end < newRange.start) {
+					newRange.start = newRange.end
+				}
+
+				// Trigger swatch regeneration if we have an image
+				if (gradientImage) {
+					throttledGenerateSwatch({
+						startRange: newRange.start,
+						endRange: newRange.end,
+						samplingFunction,
+						powerValue,
+						sampleCount,
+					})
+				}
+
+				return newRange
+			})
+		},
+		[
+			gradientImage,
+			samplingFunction,
+			powerValue,
+			sampleCount,
+			throttledGenerateSwatch,
+		]
+	)
 
 	// Handle power value changes
-	const handlePowerChange = useCallback((value) => {
-		setPowerValue(value)
-		
-		if (gradientImage) {
-			debouncedGenerateSwatch({
-				startRange: samplingRange.start,
-				endRange: samplingRange.end,
-				samplingFunction,
-				powerValue: value,
-				sampleCount
-			})
-		}
-	}, [gradientImage, samplingRange, samplingFunction, sampleCount, debouncedGenerateSwatch])
+	const handlePowerChange = useCallback(
+		(value) => {
+			setPowerValue(value)
+
+			if (gradientImage) {
+				debouncedGenerateSwatch({
+					startRange: samplingRange.start,
+					endRange: samplingRange.end,
+					samplingFunction,
+					powerValue: value,
+					sampleCount,
+				})
+			}
+		},
+		[
+			gradientImage,
+			samplingRange,
+			samplingFunction,
+			sampleCount,
+			debouncedGenerateSwatch,
+		]
+	)
 
 	// Handle step value changes
 	const handleStepChange = useCallback((value) => {
@@ -269,18 +306,28 @@ const GradientColorSampler = () => {
 	}, [])
 
 	// Handle canvas ready callback
-	const handleCanvasReady = useCallback((canvas, ctx) => {
-		setCanvasRef(canvas, ctx)
-		
-		// Generate initial swatch
-		debouncedGenerateSwatch({
-			startRange: samplingRange.start,
-			endRange: samplingRange.end,
+	const handleCanvasReady = useCallback(
+		(canvas, ctx) => {
+			setCanvasRef(canvas, ctx)
+
+			// Generate initial swatch
+			debouncedGenerateSwatch({
+				startRange: samplingRange.start,
+				endRange: samplingRange.end,
+				samplingFunction,
+				powerValue,
+				sampleCount,
+			})
+		},
+		[
+			setCanvasRef,
+			samplingRange,
 			samplingFunction,
 			powerValue,
-			sampleCount
-		})
-	}, [setCanvasRef, samplingRange, samplingFunction, powerValue, sampleCount, debouncedGenerateSwatch])
+			sampleCount,
+			debouncedGenerateSwatch,
+		]
+	)
 
 	// Copy color to clipboard
 	const handleColorClick = useCallback((color) => {
@@ -288,7 +335,7 @@ const GradientColorSampler = () => {
 	}, [])
 
 	// #region Saved Ramps Handlers
-	
+
 	// Save current gradient as a ramp
 	const handleSaveCurrentRamp = useCallback(() => {
 		if (!hasColors) {
@@ -303,14 +350,14 @@ const GradientColorSampler = () => {
 
 		const rampData = {
 			name: rampName.trim(),
-			colors: generatedColors.map(c => c.hex),
+			colors: generatedColors.map((c) => c.hex),
 			sampleCount,
 			samplingFunction,
 			powerValue,
 			luminanceMode,
 			samplingRange,
 			sourceType: gradientImage ? 'image' : 'colors',
-			
+
 			// Derivation metadata for re-sampling
 			originalColors: colorsArray, // Original input colors
 			hexInput: hexInput, // Original hex input string
@@ -320,143 +367,197 @@ const GradientColorSampler = () => {
 		saveCurrentRamp(rampData)
 		setRampName('') // Clear the input after saving
 	}, [
-		hasColors, rampName, generatedColors, sampleCount, samplingFunction, 
-		powerValue, luminanceMode, samplingRange, gradientImage, 
-		colorsArray, hexInput, saveCurrentRamp
+		hasColors,
+		rampName,
+		generatedColors,
+		sampleCount,
+		samplingFunction,
+		powerValue,
+		luminanceMode,
+		samplingRange,
+		gradientImage,
+		colorsArray,
+		hexInput,
+		saveCurrentRamp,
 	])
 
 	// Create test ramps for debugging
 	const createTestRamps = useCallback(() => {
 		const testRamps = [
-			{ name: 'Test Ramp 1', colors: ['#ff0000', '#00ff00', '#0000ff'], sampleCount: 11, samplingFunction: 'linear', powerValue: 2.0, luminanceMode: 'hsv', samplingRange: { start: 0, end: 100 }, sourceType: 'colors' },
-			{ name: 'Test Ramp 2', colors: ['#ffff00', '#ff00ff', '#00ffff'], sampleCount: 11, samplingFunction: 'linear', powerValue: 2.0, luminanceMode: 'hsv', samplingRange: { start: 0, end: 100 }, sourceType: 'colors' },
-			{ name: 'Test Ramp 3', colors: ['#ffffff', '#000000'], sampleCount: 11, samplingFunction: 'linear', powerValue: 2.0, luminanceMode: 'hsv', samplingRange: { start: 0, end: 100 }, sourceType: 'colors' }
+			{
+				name: 'Test Ramp 1',
+				colors: ['#ff0000', '#00ff00', '#0000ff'],
+				sampleCount: 11,
+				samplingFunction: 'linear',
+				powerValue: 2.0,
+				luminanceMode: 'hsv',
+				samplingRange: { start: 0, end: 100 },
+				sourceType: 'colors',
+			},
+			{
+				name: 'Test Ramp 2',
+				colors: ['#ffff00', '#ff00ff', '#00ffff'],
+				sampleCount: 11,
+				samplingFunction: 'linear',
+				powerValue: 2.0,
+				luminanceMode: 'hsv',
+				samplingRange: { start: 0, end: 100 },
+				sourceType: 'colors',
+			},
+			{
+				name: 'Test Ramp 3',
+				colors: ['#ffffff', '#000000'],
+				sampleCount: 11,
+				samplingFunction: 'linear',
+				powerValue: 2.0,
+				luminanceMode: 'hsv',
+				samplingRange: { start: 0, end: 100 },
+				sourceType: 'colors',
+			},
 		]
-		
-		testRamps.forEach(ramp => saveCurrentRamp(ramp))
+
+		testRamps.forEach((ramp) => saveCurrentRamp(ramp))
 	}, [saveCurrentRamp])
 
 	// Load a saved ramp
-	const handleLoadRamp = useCallback((ramp) => {
-		// Set all the parameters from the saved ramp
-		setSampleCount(ramp.sampleCount || 11)
-		setSamplingFunction(ramp.samplingFunction || 'linear')
-		setPowerValue(ramp.powerValue || 2.0)
-		updateLuminanceMode(ramp.luminanceMode || 'hsv')
-		setSamplingRange(ramp.samplingRange || { start: 0, end: 100 })
-		
-		// Set the colors and create a gradient
-		if (ramp.colors && ramp.colors.length > 0) {
-			const colorsString = ramp.colors.join(', ')
-			handleHexInputChange(colorsString)
-		}
+	const handleLoadRamp = useCallback(
+		(ramp) => {
+			// Set all the parameters from the saved ramp
+			setSampleCount(ramp.sampleCount || 11)
+			setSamplingFunction(ramp.samplingFunction || 'linear')
+			setPowerValue(ramp.powerValue || 2.0)
+			updateLuminanceMode(ramp.luminanceMode || 'hsv')
+			setSamplingRange(ramp.samplingRange || { start: 0, end: 100 })
 
-		showNotification(`Loaded "${ramp.name}"`, 'success')
-	}, [setSampleCount, setSamplingFunction, setPowerValue, updateLuminanceMode, 
-		setSamplingRange, handleHexInputChange])
+			// Set the colors and create a gradient
+			if (ramp.colors && ramp.colors.length > 0) {
+				const colorsString = ramp.colors.join(', ')
+				handleHexInputChange(colorsString)
+			}
+
+			showNotification(`Loaded "${ramp.name}"`, 'success')
+		},
+		[
+			setSampleCount,
+			setSamplingFunction,
+			setPowerValue,
+			updateLuminanceMode,
+			setSamplingRange,
+			handleHexInputChange,
+		]
+	)
 
 	// #endregion
 
 	return (
-		<div className='gradient-sampler'>
-			{/* Performance Indicator */}
-			<PerformanceIndicator 
-				isProcessing={processing || samplingProcessing} 
-				message={processing ? 'Loading image...' : 'Generating swatch...'}
-			/>
-
-			<div className='main-grid'>
-				{/* Testing Controls - Left Column (3/12) */}
-				{testingMode && (
-					<div className='testing-controls-section'>
-						<h3>Testing Controls</h3>
-						<div className='testing-content'>
-							<div className='test-info'>
-								<p>Quick test gradients:</p>
-								<button 
-									className='mini-test-btn'
-									onClick={() => {
-										const testColors = ['#ff0000', '#ffff00', '#00ff00', '#00ffff', '#0000ff']
-										handleHexInputChange(testColors.join(', '))
-									}}
-								>
-									RGB
-								</button>
-								<button 
-									className='mini-test-btn'
-									onClick={() => handleHexInputChange('#000000, #ffffff')}
-								>
-									B&W
-								</button>
-								<button 
-									className='mini-test-btn'
-									onClick={() => handleHexInputChange('#ff6b6b, #4ecdc4, #45b7d1')}
-								>
-									Sunset
-								</button>
-								<button 
-									className='mini-test-btn'
-									onClick={() => handleHexInputChange('#667eea, #764ba2')}
-								>
-									Purple
-								</button>
-								<button 
-									className='mini-test-btn'
-									onClick={createTestRamps}
-								>
-									Test Ramps
-								</button>
+		<>
+			<div id='ramps-page-container' className='ramps-page-container'>
+				{/* Performance Indicator */}
+				<PerformanceIndicator
+					isProcessing={processing || samplingProcessing}
+					message={processing ? 'Loading image...' : 'Generating swatch...'}
+				/>
+				<div className='main-grid'>
+					{/* Testing Controls - Left Column (3/12) */}
+					{testingMode && (
+						<div className='testing-controls-section'>
+							<h3>Testing Controls</h3>
+							<div className='testing-content'>
+								<div className='test-info'>
+									<p>Quick test gradients:</p>
+									<button
+										className='mini-test-btn'
+										onClick={() => {
+											const testColors = [
+												'#ff0000',
+												'#ffff00',
+												'#00ff00',
+												'#00ffff',
+												'#0000ff',
+											]
+											handleHexInputChange(testColors.join(', '))
+										}}
+									>
+										RGB
+									</button>
+									<button
+										className='mini-test-btn'
+										onClick={() => handleHexInputChange('#000000, #ffffff')}
+									>
+										B&W
+									</button>
+									<button
+										className='mini-test-btn'
+										onClick={() =>
+											handleHexInputChange('#ff6b6b, #4ecdc4, #45b7d1')
+										}
+									>
+										Sunset
+									</button>
+									<button
+										className='mini-test-btn'
+										onClick={() => handleHexInputChange('#667eea, #764ba2')}
+									>
+										Purple
+									</button>
+									<button className='mini-test-btn' onClick={createTestRamps}>
+										Test Ramps
+									</button>
+								</div>
 							</div>
 						</div>
-					</div>
-				)}
+					)}
+					{/* Main Sampler - Right Column (6/12 or 9/12 if no testing) */}
+					<div
+						id='gradient-sampler-main'
+						className={`gradient-sampler ${
+							testingMode ? 'with-testing' : 'full-width'
+						}`}
+					>
+						{/* Upload Section */}
+						<div className='upload-section'>
+							<div className='upload-grid'>
+								<div className='upload-item'>
+									<label className='upload-label'>PNG Image</label>
+									<FileUpload
+										accept='image/png'
+										onFileSelect={handleImageUpload}
+										buttonText='Choose PNG'
+										infoText='Gradient to sample'
+									/>
+								</div>
 
-				{/* Main Sampler - Right Column (6/12 or 9/12 if no testing) */}
-				<div className={`gradient-sampler ${testingMode ? 'with-testing' : 'full-width'}`}>
-					{/* Upload Section */}
-				<div className='upload-section'>
-					<div className='upload-grid'>
-						<div className='upload-item'>
-							<label className='upload-label'>PNG Image</label>
-							<FileUpload
-								accept='image/png'
-								onFileSelect={handleImageUpload}
-								buttonText='Choose PNG'
-								infoText='Gradient to sample'
-							/>
-						</div>
+								<div className='upload-item'>
+									<label className='upload-label'>Import Ramps</label>
+									<FileUpload
+										accept='.gpl'
+										onFileSelect={handleGPLImport}
+										buttonText='Choose .gpl'
+										buttonColor='#28a745'
+										infoText='GIMP palette'
+									/>
+								</div>
+							</div>
 
-						<div className='upload-item'>
-							<label className='upload-label'>Import Ramps</label>
-							<FileUpload
-								accept='.gpl'
-								onFileSelect={handleGPLImport}
-								buttonText='Choose .gpl'
-								buttonColor='#28a745'
-								infoText='GIMP palette'
-							/>
-						</div>
-					</div>
+							<div className='divider'>OR</div>
 
-					<div className='divider'>OR</div>
-
-					<div className='color-input-section'>
-						<label className='upload-label'>Create from Colors</label>
-						<div className='hex-input-row'>
-							<input
-								type='text'
-								className='hex-input'
-								placeholder='#ff0000, #00ff00, #0000ff'
-								value={hexInput}
-								onChange={(e) => handleHexInputChange(e.target.value)}
-							/>
-							<button
-								className='picker-toggle-btn'
-								onClick={() => setShowColorPicker(!showColorPicker)}
-							>
-								{showColorPicker ? '✕ Hide' : '🎨 Picker'}
-							</button>
-							{/* <select
+							<div className='color-input-section'>
+								<label className='upload-label'>Create from Colors</label>
+								<div className='hex-input-row'>
+									<input
+										type='text'
+										className='hex-input'
+										placeholder='#ff0000, #00ff00, #0000ff'
+										value={hexInput}
+										onChange={(e) => handleHexInputChange(e.target.value)}
+									/>
+									<button
+										className='picker-toggle-btn'
+										onClick={() => setShowColorPicker(!showColorPicker)}
+									>
+										{showColorPicker ? '✕ Hide' : '🎨 Picker'}
+									</button>
+									{/* <select
 								className='luminance-selector'
 								value={luminanceMode}
 								onChange={(e) => updateLuminanceMode(e.target.value)}
@@ -464,373 +565,440 @@ const GradientColorSampler = () => {
 								<option value='hsv'>HSV</option>
 								<option value='ciel'>CIE L*</option>
 							</select> */}
-						</div>
-
-						{showColorPicker && (
-							<ColorPicker
-								selectedColors={colorsArray}
-								onColorsChange={handleColorPickerChange}
-								luminanceMode={luminanceMode}
-								onLuminanceModeChange={updateLuminanceMode}
-							/>
-						)}
-					</div>
-				</div>
-
-				{/* Gradient Display */}
-				{gradientImage && (
-					<GradientCanvas
-						image={gradientImage}
-						onCanvasReady={handleCanvasReady}
-						samplingRange={samplingRange}
-						samplePositions={samplePositions}
-					/>
-				)}
-
-				{/* Sampling Controls */}
-				{gradientImage && (
-					<div className='controls-section'>
-						<div className='control-group'>
-							<label>Sampling Range</label>
-							<div className='range-controls'>
-								<div className='range-input'>
-									<label>Start:</label>
-									<input
-										type='range'
-										min='0'
-										max='100'
-										step='0.1'
-										value={samplingRange.start}
-										onChange={(e) => handleRangeChange('start', e.target.value)}
-									/>
-									<input
-										type='number'
-										min='0'
-										max='100'
-										step='0.1'
-										value={samplingRange.start}
-										onChange={(e) => handleRangeChange('start', e.target.value)}
-									/>
-									<span>%</span>
 								</div>
 
-								<div className='range-input'>
-									<label>End:</label>
-									<input
-										type='range'
-										min='0'
-										max='100'
-										step='0.1'
-										value={samplingRange.end}
-										onChange={(e) => handleRangeChange('end', e.target.value)}
+								{showColorPicker && (
+									<ColorPicker
+										selectedColors={colorsArray}
+										onColorsChange={handleColorPickerChange}
+										luminanceMode={luminanceMode}
+										onLuminanceModeChange={updateLuminanceMode}
 									/>
-									<input
-										type='number'
-										min='0'
-										max='100'
-										step='0.1'
-										value={samplingRange.end}
-										onChange={(e) => handleRangeChange('end', e.target.value)}
-									/>
-									<span>%</span>
-								</div>
+								)}
 							</div>
 						</div>
 
-						<div className='control-group'>
-							<label>Sample Count: {sampleCount} colors</label>
-							<input
-								type='range'
-								min='8'
-								max='16'
-								step='1'
-								value={sampleCount}
-								onChange={(e) => {
-									const newCount = parseInt(e.target.value)
-									setSampleCount(newCount)
-									
-									// Trigger swatch regeneration if we have an image
-									if (gradientImage) {
-										debouncedGenerateSwatch({
-											startRange: samplingRange.start,
-											endRange: samplingRange.end,
-											samplingFunction,
-											powerValue,
-											sampleCount: newCount
-										})
-									}
-								}}
-								className='sample-count-slider'
+						{/* Gradient Display */}
+						{gradientImage && (
+							<GradientCanvas
+								image={gradientImage}
+								onCanvasReady={handleCanvasReady}
+								samplingRange={samplingRange}
+								samplePositions={samplePositions}
 							/>
-						</div>
+						)}
 
-						<div className='control-group'>
-							<label>Sampling Function</label>
-							<select
-								value={samplingFunction}
-								onChange={(e) => handleFunctionChange(e.target.value)}
-								className='function-selector'
-							>
-								<option value='linear'>Linear</option>
-								<option value='customExponent'>Custom Power</option>
-								<option value='customParametric'>Custom Parametric</option>
-							</select>
+						{/* Sampling Controls */}
+						{gradientImage && (
+							<div className='controls-section'>
+								<div className='control-group'>
+									<label>Sampling Range</label>
+									<div className='range-controls'>
+										<div className='range-input'>
+											<label>Start:</label>
+											<input
+												type='range'
+												min='0'
+												max='100'
+												step='0.1'
+												value={samplingRange.start}
+												onChange={(e) =>
+													handleRangeChange('start', e.target.value)
+												}
+											/>
+											<input
+												type='number'
+												min='0'
+												max='100'
+												step='0.1'
+												value={samplingRange.start}
+												onChange={(e) =>
+													handleRangeChange('start', e.target.value)
+												}
+											/>
+											<span>%</span>
+										</div>
 
-							{showPowerSlider && (
-								<div className='power-controls'>
-									<label>α: {powerValue.toFixed(getDecimalPlaces(stepValue))}</label>
+										<div className='range-input'>
+											<label>End:</label>
+											<input
+												type='range'
+												min='0'
+												max='100'
+												step='0.1'
+												value={samplingRange.end}
+												onChange={(e) =>
+													handleRangeChange('end', e.target.value)
+												}
+											/>
+											<input
+												type='number'
+												min='0'
+												max='100'
+												step='0.1'
+												value={samplingRange.end}
+												onChange={(e) =>
+													handleRangeChange('end', e.target.value)
+												}
+											/>
+											<span>%</span>
+										</div>
+									</div>
+								</div>
+
+								<div className='control-group'>
+									<label>Sample Count: {sampleCount} colors</label>
 									<input
 										type='range'
-										min='0.1'
-										max='5'
-										step={stepValue}
-										value={powerValue}
-										onChange={(e) => handlePowerChange(parseFloat(e.target.value))}
+										min='8'
+										max='16'
+										step='1'
+										value={sampleCount}
+										onChange={(e) => {
+											const newCount = parseInt(e.target.value)
+											setSampleCount(newCount)
+
+											// Trigger swatch regeneration if we have an image
+											if (gradientImage) {
+												debouncedGenerateSwatch({
+													startRange: samplingRange.start,
+													endRange: samplingRange.end,
+													samplingFunction,
+													powerValue,
+													sampleCount: newCount,
+												})
+											}
+										}}
+										className='sample-count-slider'
 									/>
-									<div className='step-control'>
-										<label>Step: </label>
-										<input
-											type='number'
-											min='0.001'
-											max='1'
-											step='0.001'
-											value={stepValue}
-											onChange={(e) => handleStepChange(parseFloat(e.target.value))}
-											className='step-input'
+								</div>
+
+								<div className='control-group'>
+									<label>Sampling Function</label>
+									<select
+										value={samplingFunction}
+										onChange={(e) => handleFunctionChange(e.target.value)}
+										className='function-selector'
+									>
+										<option value='linear'>Linear</option>
+										<option value='customExponent'>Custom Power</option>
+										<option value='customParametric'>Custom Parametric</option>
+									</select>
+
+									{showPowerSlider && (
+										<div className='power-controls'>
+											<label>
+												α: {powerValue.toFixed(getDecimalPlaces(stepValue))}
+											</label>
+											<input
+												type='range'
+												min='0.1'
+												max='5'
+												step={stepValue}
+												value={powerValue}
+												onChange={(e) =>
+													handlePowerChange(parseFloat(e.target.value))
+												}
+											/>
+											<div className='step-control'>
+												<label>Step: </label>
+												<input
+													type='number'
+													min='0.001'
+													max='1'
+													step='0.001'
+													value={stepValue}
+													onChange={(e) =>
+														handleStepChange(parseFloat(e.target.value))
+													}
+													className='step-input'
+												/>
+											</div>
+										</div>
+									)}
+
+									{/* Curve Preview */}
+									<div className='curve-preview-wrapper'>
+										<label>Function Curve</label>
+										<CurvePreview
+											samplingFunction={samplingFunction}
+											powerValue={powerValue}
+											sampleCount={sampleCount}
+											width={200}
+											height={60}
 										/>
 									</div>
 								</div>
-							)}
-
-							{/* Curve Preview */}
-							<div className='curve-preview-wrapper'>
-								<label>Function Curve</label>
-								<CurvePreview 
-									samplingFunction={samplingFunction}
-									powerValue={powerValue}
-									sampleCount={sampleCount}
-									width={200}
-									height={60}
-								/>
 							</div>
-						</div>
-					</div>
-				)}
+						)}
 
-				{/* Color Swatch Display */}
-				{hasColors && (
-					<div className='output-section'>
-						<div className='section-header'>
-							<h2>Generated Swatch ({colorCount} colors)</h2>
-							<div className='swatch-actions'>
-								<select
-									className='show-luminance-selector'
-									value={showLuminance}
-									onChange={(e) => handleShowLuminanceChange(e.target.value)}
-									title="Show luminance values on color tiles"
-								>
-									<option value='none'>Luminance</option>
-									<option value='ciel'>CIE L*</option>
-									<option value='hsv'>HSV</option>
-								</select>
-								<button
-									className='control-icon-btn'
-									onClick={reverseColors}
-									title='Reverse Colors'
-								>
-									🔄
-								</button>
-								<button
-									className='control-icon-btn'
-									onClick={clearSwatch}
-									title='Clear Swatch'
-								>
-									🗑️
-								</button>
-							</div>
-						</div>
-
-						<div 
-							className='swatch-container'
-							style={{ gridTemplateColumns: `repeat(${sampleCount}, 1fr)` }}
-						>
-							{generatedColors.map((color, index) => (
-								<div
-									key={index}
-									className='color-tile'
-									style={{ backgroundColor: color.hex }}
-									onClick={() => handleColorClick(color)}
-									title={`${color.hex} (Click to copy)`}
-								>
-									<span className='color-index'>{index}</span>
-									<span className='color-code'>{color.hex}</span>
-									{showLuminance !== 'none' && (
-										<span className='luminance-overlay'>
-											{showLuminance === 'ciel' ? Math.round(color.luminance_ciel || 0) : Math.round(color.luminance_hsv || 0)}
-										</span>
-									)}
+						{/* Color Swatch Display */}
+						{hasColors && (
+							<div className='output-section'>
+								<div className='section-header'>
+									<h2>Generated Swatch ({colorCount} colors)</h2>
+									<div className='swatch-actions'>
+										<select
+											className='show-luminance-selector'
+											value={showLuminance}
+											onChange={(e) =>
+												handleShowLuminanceChange(e.target.value)
+											}
+											title='Show luminance values on color tiles'
+										>
+											<option value='none'>Luminance</option>
+											<option value='ciel'>CIE L*</option>
+											<option value='hsv'>HSV</option>
+										</select>
+										<button
+											className='control-icon-btn'
+											onClick={reverseColors}
+											title='Reverse Colors'
+										>
+											🔄
+										</button>
+										<button
+											className='control-icon-btn'
+											onClick={clearSwatch}
+											title='Clear Swatch'
+										>
+											🗑️
+										</button>
+									</div>
 								</div>
-							))}
-						</div>
 
-						{/* Comparison Swatch */}
-						{comparisonRamp && showComparisonSection && (
-							<>
-								<div 
-									className='swatch-container comparison-swatch'
-									style={{ gridTemplateColumns: `repeat(${comparisonRamp.colors?.length || sampleCount}, 1fr)` }}
+								<div
+									className='swatch-container'
+									style={{ gridTemplateColumns: `repeat(${sampleCount}, 1fr)` }}
 								>
-									{comparisonRamp.colors?.map((hex, index) => (
+									{generatedColors.map((color, index) => (
 										<div
 											key={index}
 											className='color-tile'
-											style={{ backgroundColor: hex }}
-											onClick={() => copyToClipboard(hex, `${hex} copied!`)}
-											title={`${hex} (Click to copy)`}
+											style={{ backgroundColor: color.hex }}
+											onClick={() => handleColorClick(color)}
+											title={`${color.hex} (Click to copy)`}
 										>
 											<span className='color-index'>{index}</span>
-											<span className='color-code'>{hex}</span>
+											<span className='color-code'>{color.hex}</span>
 											{showLuminance !== 'none' && (
 												<span className='luminance-overlay'>
-													{showLuminance === 'ciel' ? Math.round(calculateLuminance(parseInt(hex.slice(1,3), 16), parseInt(hex.slice(3,5), 16), parseInt(hex.slice(5,7), 16), 'ciel')) : Math.round(calculateLuminance(parseInt(hex.slice(1,3), 16), parseInt(hex.slice(3,5), 16), parseInt(hex.slice(5,7), 16), 'hsv'))}
+													{showLuminance === 'ciel'
+														? Math.round(color.luminance_ciel || 0)
+														: Math.round(color.luminance_hsv || 0)}
 												</span>
 											)}
 										</div>
 									))}
 								</div>
-								<div className='comparison-controls'>
-									<div className='comparison-info'>
-										<span className='comparison-label'>Comparing with: <strong>{comparisonRamp.name}</strong></span>
+
+								{/* Comparison Swatch */}
+								{comparisonRamp && showComparisonSection && (
+									<>
+										<div
+											className='swatch-container comparison-swatch'
+											style={{
+												gridTemplateColumns: `repeat(${
+													comparisonRamp.colors?.length || sampleCount
+												}, 1fr)`,
+											}}
+										>
+											{comparisonRamp.colors?.map((hex, index) => (
+												<div
+													key={index}
+													className='color-tile'
+													style={{ backgroundColor: hex }}
+													onClick={() => copyToClipboard(hex, `${hex} copied!`)}
+													title={`${hex} (Click to copy)`}
+												>
+													<span className='color-index'>{index}</span>
+													<span className='color-code'>{hex}</span>
+													{showLuminance !== 'none' && (
+														<span className='luminance-overlay'>
+															{showLuminance === 'ciel'
+																? Math.round(
+																		calculateLuminance(
+																			parseInt(hex.slice(1, 3), 16),
+																			parseInt(hex.slice(3, 5), 16),
+																			parseInt(hex.slice(5, 7), 16),
+																			'ciel'
+																		)
+																  )
+																: Math.round(
+																		calculateLuminance(
+																			parseInt(hex.slice(1, 3), 16),
+																			parseInt(hex.slice(3, 5), 16),
+																			parseInt(hex.slice(5, 7), 16),
+																			'hsv'
+																		)
+																  )}
+														</span>
+													)}
+												</div>
+											))}
+										</div>
+										<div className='comparison-controls'>
+											<div className='comparison-info'>
+												<span className='comparison-label'>
+													Comparing with: <strong>{comparisonRamp.name}</strong>
+												</span>
+											</div>
+											<button
+												className='comparison-close-btn'
+												onClick={() => setShowComparisonSection(false)}
+												title='Hide Comparison'
+											>
+												✕ Hide Comparison
+											</button>
+										</div>
+									</>
+								)}
+
+								<div className='save-section'>
+									<h3>Save Current Ramp</h3>
+									<div className='save-controls'>
+										<input
+											type='text'
+											className='ramp-name-input'
+											placeholder='Enter ramp name...'
+											value={rampName}
+											onChange={(e) => setRampName(e.target.value)}
+											onKeyPress={(e) => {
+												if (e.key === 'Enter' && rampName.trim()) {
+													handleSaveCurrentRamp()
+												}
+											}}
+										/>
+										<button
+											className='save-button'
+											onClick={handleSaveCurrentRamp}
+											disabled={!hasColors || !rampName.trim()}
+											title={
+												!hasColors
+													? 'Generate a gradient first'
+													: !rampName.trim()
+													? 'Enter a ramp name'
+													: 'Save this gradient as a ramp'
+											}
+										>
+											💾
+										</button>
 									</div>
-									<button
-										className='comparison-close-btn'
-										onClick={() => setShowComparisonSection(false)}
-										title='Hide Comparison'
-									>
-										✕ Hide Comparison
-									</button>
 								</div>
-							</>
+
+								<div
+									className='export-section'
+									style={{
+										display: 'flex',
+										justifyContent: 'space-between',
+										alignItems: 'center',
+									}}
+								>
+									<h4>Active Ramp Export Options</h4>
+									<div className='export-buttons'>
+										<button
+											className='export-button'
+											onClick={() => exportAsGPL('gradient-swatch')}
+											title='Download .gpl'
+										>
+											📄
+										</button>
+										<button
+											className='export-button png-export'
+											onClick={() => exportAsPNG('gradient-swatch')}
+											title='Download .png'
+										>
+											🖼️
+										</button>
+										<button
+											className='export-button'
+											onClick={() => {
+												const gplContent = generatedColors
+													.map((c) => c.hex)
+													.join(', ')
+												copyToClipboard(
+													gplContent,
+													'Colors copied to clipboard!'
+												)
+											}}
+											title='Copy Colors'
+										>
+											📋
+										</button>
+									</div>
+								</div>
+							</div>
 						)}
 
-						<div className='save-section'>
-							<h3>Save Current Ramp</h3>
-							<div className='save-controls'>
-								<input
-									type='text'
-									className='ramp-name-input'
-									placeholder='Enter ramp name...'
-									value={rampName}
-									onChange={(e) => setRampName(e.target.value)}
-									onKeyPress={(e) => {
-										if (e.key === 'Enter' && rampName.trim()) {
-											handleSaveCurrentRamp()
-										}
-									}}
-								/>
-								<button 
-									className='save-button'
-									onClick={handleSaveCurrentRamp}
-									disabled={!hasColors || !rampName.trim()}
-									title={
-										!hasColors ? 'Generate a gradient first' : 
-										!rampName.trim() ? 'Enter a ramp name' : 
-										'Save this gradient as a ramp'
-									}
-								>
-									💾
+						{/* Changelog */}
+						<div className='changelog-section'>
+							<div
+								className='section-header'
+								onClick={() =>
+									setShowChangelogCollapsed(!showChangelogCollapsed)
+								}
+							>
+								<span>Changelog</span>
+								<button className='toggle-btn'>
+									{showChangelogCollapsed ? '↓' : '↑'}
 								</button>
 							</div>
+
+							{!showChangelogCollapsed && (
+								<div className='changelog-content'>
+									<div className='changelog-entry'>
+										<div className='version'>v7.0</div>
+										<ul>
+											<li>
+												Complete React/NextJS port with performance
+												optimizations
+											</li>
+											<li>
+												Built-in debouncing and throttling for smooth
+												interactions
+											</li>
+											<li>Modular component architecture with custom hooks</li>
+											<li>Real-time color sampling with visual feedback</li>
+											<li>Export functionality (GPL, PNG, clipboard)</li>
+											<li>
+												Responsive design optimized for various screen sizes
+											</li>
+											<li>Performance monitoring and optimization utilities</li>
+										</ul>
+									</div>
+								</div>
+							)}
 						</div>
-
-						<div className='export-section' style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-							<h4>Active Ramp Export Options</h4>
-							<div className='export-buttons'>
-								<button 
-									className='export-button'
-									onClick={() => exportAsGPL('gradient-swatch')}
-									title='Download .gpl'
-								>
-									📄
-								</button>
-								<button 
-									className='export-button png-export'
-									onClick={() => exportAsPNG('gradient-swatch')}
-									title='Download .png'
-								>
-									🖼️
-								</button>
-								<button 
-									className='export-button'
-									onClick={() => {
-										const gplContent = generatedColors.map(c => c.hex).join(', ')
-										copyToClipboard(gplContent, 'Colors copied to clipboard!')
-									}}
-									title='Copy Colors'
-								>
-									📋
-								</button>
-							</div>
-						</div>
-					</div>
-				)}
-
-				{/* Changelog */}
-				<div className='changelog-section'>
-					<div
-						className='section-header'
-						onClick={() => setShowChangelogCollapsed(!showChangelogCollapsed)}
-					>
-						<span>Changelog</span>
-						<button className='toggle-btn'>
-							{showChangelogCollapsed ? '↓' : '↑'}
-						</button>
-					</div>
-
-					{!showChangelogCollapsed && (
-						<div className='changelog-content'>
-							<div className='changelog-entry'>
-								<div className='version'>v7.0</div>
-								<ul>
-									<li>Complete React/NextJS port with performance optimizations</li>
-									<li>Built-in debouncing and throttling for smooth interactions</li>
-									<li>Modular component architecture with custom hooks</li>
-									<li>Real-time color sampling with visual feedback</li>
-									<li>Export functionality (GPL, PNG, clipboard)</li>
-									<li>Responsive design optimized for various screen sizes</li>
-									<li>Performance monitoring and optimization utilities</li>
-								</ul>
-							</div>
+					</div>{' '}
+					{/* Close gradient-sampler-main */}
+					{/* Saved Ramps - Right Column (3/12) */}
+					{testingMode && (
+						<div className='saved-ramps-section'>
+							<h3>Saved Ramps</h3>
+							<SavedRamps
+								savedRamps={savedRamps}
+								isLoading={rampsLoading}
+								onLoadRamp={handleLoadRamp}
+								onDeleteRamp={deleteSavedRamp}
+								onDuplicateRamp={duplicateRamp}
+								onUpdateRamp={updateSavedRamp}
+								onExportRamps={exportRamps}
+								onExportRampsAsGPL={exportRampsAsGPL}
+								onExportRampsAsPNG={exportRampsAsPNG}
+								onImportRamps={importRamps}
+								onClearRamps={clearRamps}
+								onReorderRamps={reorderRamps}
+								onReverseSavedRamp={reverseSavedRamp}
+								onReverseAllRamps={reverseAllRamps}
+								onCompareRamp={handleComparisonSelect}
+							/>
 						</div>
 					)}
-				</div>
-				</div> {/* Close gradient-sampler */}
-
-				{/* Saved Ramps - Right Column (3/12) */}
-				{testingMode && (
-					<div className='saved-ramps-section'>
-						<h3>Saved Ramps</h3>
-						<SavedRamps
-							savedRamps={savedRamps}
-							isLoading={rampsLoading}
-							onLoadRamp={handleLoadRamp}
-							onDeleteRamp={deleteSavedRamp}
-							onDuplicateRamp={duplicateRamp}
-							onUpdateRamp={updateSavedRamp}
-							onExportRamps={exportRamps}
-							onExportRampsAsGPL={exportRampsAsGPL}
-							onExportRampsAsPNG={exportRampsAsPNG}
-							onImportRamps={importRamps}
-							onClearRamps={clearRamps}
-							onReorderRamps={reorderRamps}
-							onReverseSavedRamp={reverseSavedRamp}
-							onReverseAllRamps={reverseAllRamps}
-							onCompareRamp={handleComparisonSelect}
-						/>
-					</div>
-				)}
-			</div> {/* Close main-grid */}
-		</div>
+				</div>{' '}
+				{/* Close main-grid */}
+			</div>{' '}
+			{/* Close ramps-page-container */}
+		</>
 	)
 }
 
