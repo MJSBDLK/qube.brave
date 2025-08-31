@@ -250,7 +250,8 @@ const ColorPicker = ({
 				percentage = Math.max(0, Math.min(100, (y / rect.height) * 100))
 			}
 
-			setCurrentHue((percentage / 100) * 360)
+			const newHue = (percentage / 100) * 360
+			setCurrentHue(newHue)
 		},
 		[isHorizontalLayout]
 	)
@@ -476,8 +477,16 @@ const ColorPicker = ({
 								className='hue-handle'
 								style={
 									isHorizontalLayout
-										? { left: `${(currentHue / 360) * 100}%` }
-										: { top: `${(currentHue / 360) * 100}%` }
+										? { 
+												left: `${(currentHue / 360) * 100}%`,
+												top: '50%',
+												transform: 'translateY(-50%)'
+											}
+										: { 
+												top: `${(currentHue / 360) * 100}%`,
+												left: '50%',
+												transform: 'translateX(-50%)'
+											}
 								}
 							/>
 						</div>
@@ -494,8 +503,16 @@ const ColorPicker = ({
 								className='luminance-handle'
 								style={
 									isHorizontalLayout
-										? { left: `${100 - currentLuminance}%` }
-										: { top: `${100 - currentLuminance}%` }
+										? { 
+												left: `${100 - currentLuminance}%`,
+												top: '50%',
+												transform: 'translateY(-50%)'
+											}
+										: { 
+												top: `${100 - currentLuminance}%`,
+												left: '50%',
+												transform: 'translateX(-50%)'
+											}
 								}
 							/>
 						</div>

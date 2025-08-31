@@ -2254,12 +2254,10 @@ input[type='range'] {
 	border: 2px solid rgba(0, 0, 0, 0.2);
 	border-radius: 6px;
 	position: absolute;
-	left: 50%;
-	transform: translateX(-50%);
 	pointer-events: none;
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3),
 		inset 0 1px 2px rgba(255, 255, 255, 0.2);
-	transition: all 0.1s ease;
+	/* no transition: we want it to be snappy */
 }
 
 /* Horizontal handles when content wraps */
@@ -2267,19 +2265,16 @@ input[type='range'] {
 .color-workspace.wrapped .luminance-handle {
 	width: 12px;
 	height: 28px;
-	top: 50% !important;
-	left: unset !important;
-	transform: translateY(-50%) !important;
 }
 
 .hue-handle:hover,
 .luminance-handle:hover {
-	transform: translateX(-50%) scale(1.1);
+	transform: inherit scale(1.1);
 }
 
 .color-workspace.wrapped .hue-handle:hover,
 .color-workspace.wrapped .luminance-handle:hover {
-	transform: translateY(-50%) scale(1.1) !important;
+	transform: inherit scale(1.1);
 }
 
 /* Color Info Panel */
