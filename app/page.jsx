@@ -1,4 +1,4 @@
-// app/page.js
+// app/page.jsx
 'use client'
 import React from 'react';
 import Update from '../components/Update';

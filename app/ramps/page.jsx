@@ -9,6 +9,7 @@ import SavedRamps from './components/SavedRamps'
 import ColorPicker from './components/ColorPicker'
 import { useColorSampling } from './hooks/useColorSampling'
 import { useSavedRamps } from './hooks/useSavedRamps'
+import { useEnvironment } from './hooks/useEnvironment'
 import { parseHexColors, calculateLuminance } from './utils/colorUtils'
 import {
 	debounce,
@@ -18,10 +19,11 @@ import {
 	PerformanceIndicator,
 } from './utils/performanceUtils'
 
-const testingMode = false
-
 // Main Component
 const GradientColorSampler = () => {
+	// Environment and testing utilities
+	const { testingMode } = useEnvironment()
+	
 	// #region State Management
 	const [showColorPicker, setShowColorPicker] = useState(
 		testingMode ? true : false
@@ -469,7 +471,23 @@ const GradientColorSampler = () => {
 						{/* Upload Section */}
 						<div className='upload-section'>
 							<div className='section-header'>
-								<h2>Color Ramp Generator</h2>
+								<h2>
+									Color Ramp Generator
+									{testingMode && (
+										<span 
+											id="test-indicator" 
+											className="test-element" 
+											style={{
+												fontSize: '10px', 
+												color: 'rgb(255, 107, 107)', 
+												marginLeft: '8px', 
+												fontWeight: 'bold'
+											}}
+										>
+											H
+										</span>
+									)}
+								</h2>
 								<button
 									className='toggle-saved-ramps-btn'
 									onClick={() => setShowSavedRamps(!showSavedRamps)}

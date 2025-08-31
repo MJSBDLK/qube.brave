@@ -521,6 +521,7 @@ h1 {
 	gap: 10px;
 	flex-wrap: wrap;
 	width: 50%;
+	justify-content: flex-end;
 }
 
 .export-button {
@@ -2108,8 +2109,8 @@ input[type='range'] {
 
 /* Modern SV Picker */
 .sv-picker-modern {
-	width: 280px;
-	height: 280px;
+	width: 100%;
+	min-height: 235px;
 	border-radius: 12px;
 	position: relative;
 	cursor: crosshair;
@@ -2186,7 +2187,7 @@ input[type='range'] {
 .hue-slider-modern,
 .luminance-slider-modern {
 	width: 24px;
-	height: 280px;
+	height: 100%;
 	border-radius: 12px;
 	position: relative;
 	cursor: pointer;
@@ -2200,7 +2201,7 @@ input[type='range'] {
 /* Horizontal layout for sliders when content wraps */
 .color-workspace.wrapped .hue-slider-modern,
 .color-workspace.wrapped .luminance-slider-modern {
-	width: 280px; /* Match the SV picker width */
+	width: 100%; /* Match the SV picker width */
 	height: 24px; /* Horizontal layout */
 }
 
@@ -2522,8 +2523,9 @@ input[type='range'] {
 
 .remove-chip-btn {
 	position: absolute;
-	top: 4px;
-	right: 4px;
+	top: 50%;
+	right: 50%;
+	transform: translate(50%, -50%);
 	width: 20px;
 	height: 20px;
 	background: rgba(0, 0, 0, 0.7);
@@ -2671,4 +2673,16 @@ input[type='range'] {
 }
 
 /*#endregion /Modern Color Picker CSS */
+
+/*#region Test Element Styles */
+
+/* Test elements are visible by default in development */
+.test-element {
+	display: inline;
+}
+
+/* In production builds, test elements are automatically hidden */
+/* This works because testingMode will be false in production due to the inProduction() check */
+
+/*#endregion /Test Element Styles */
 
