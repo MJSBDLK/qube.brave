@@ -191,6 +191,11 @@ h1 {
 	right: 0;
 }
 
+.color-input-section {
+	--hueCubeHeight: 235px;
+	--hueCubeWidth: 235px;
+}
+
 .color-input-section h3 {
 	margin: 0 0 15px 0;
 	font-size: 16px;
@@ -1996,8 +2001,8 @@ input[type='range'] {
 .modern-color-picker {
 	background: linear-gradient(145deg, #1e1e1e, #262626);
 	border-radius: 20px;
-	padding: 24px;
-	margin-top: 16px;
+	padding: 12px;
+	margin-top: 8px;
 	border: 1px solid #333;
 	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3),
 		inset 0 1px 0 rgba(255, 255, 255, 0.1);
@@ -2011,10 +2016,12 @@ input[type='range'] {
 /* Header Section */
 .picker-header {
 	display: flex;
+	flex-wrap: wrap;
 	justify-content: space-between;
 	align-items: center;
-	margin-bottom: 24px;
-	padding-bottom: 16px;
+	gap: 12px;
+	margin-bottom: 12px;
+	padding-bottom: 8px;
 	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -2081,8 +2088,8 @@ input[type='range'] {
 /* Main Picker Interface */
 .picker-interface {
 	display: flex;
-	gap: 24px;
-	margin-bottom: 24px;
+	gap: 12px;
+	margin-bottom: 12px;
 	/* Make it responsive to fit in smaller grid columns */
 	flex-wrap: wrap;
 	align-items: flex-start; /* Prevent stretching */
@@ -2098,6 +2105,7 @@ input[type='range'] {
 	justify-content: center;
 	flex-wrap: wrap; /* Allow wrapping when needed */
 	align-items: flex-start;
+	width: 50%;
 }
 
 /* When content wraps, adjust layout for better space usage */
@@ -2106,6 +2114,8 @@ input[type='range'] {
 	align-items: center;
 	gap: 12px;
 }
+
+
 
 /* Modern SV Picker */
 .sv-picker-modern {
@@ -2121,12 +2131,12 @@ input[type='range'] {
 }
 
 /* Make SV picker responsive but maintain aspect ratio */
-@media (max-width: 600px) {
+/* @media (max-width: 600px) {
 	.sv-picker-modern {
 		width: min(280px, calc(100vw - 80px));
 		height: min(280px, calc(100vw - 80px));
 	}
-}
+} */
 
 .sv-picker-modern::before {
 	content: '';
@@ -2276,9 +2286,9 @@ input[type='range'] {
 .color-info-panel {
 	display: flex;
 	flex-direction: column;
-	gap: 16px;
-	min-width: 180px; /* Reduced minimum for tighter spaces */
-	max-width: 300px; /* Reasonable maximum */
+	gap: 16px; width: 50%;
+	/* min-width: 180px; 
+	max-width: 300px;  */
 	flex-shrink: 1; /* Allow some shrinking when needed */
 	flex-grow: 0; /* Don't grow unnecessarily */
 }
@@ -2619,14 +2629,14 @@ input[type='range'] {
 */
 
 /* Responsive Design - Simplified */
-@media (max-width: 1200px) {
+/* @media (max-width: 1200px) {
 	.picker-interface {
 		flex-direction: column;
 		gap: 16px;
 	}
 
 	.sv-picker-modern {
-		width: 240px;
+		width: 200px;
 		height: 240px;
 	}
 
@@ -2634,11 +2644,11 @@ input[type='range'] {
 		min-width: auto;
 		max-width: 100%;
 	}
-}
+} */
 
-@media (max-width: 768px) {
+/* @media (max-width: 768px) {
 	.modern-color-picker {
-		padding: 16px;
+		padding: 8px;
 		border-radius: 16px;
 	}
 
@@ -2652,7 +2662,7 @@ input[type='range'] {
 		height: min(240px, calc(100vw - 80px));
 	}
 
-	/* Ensure sliders scale appropriately on mobile */
+	
 	.color-workspace.wrapped .hue-slider-modern,
 	.color-workspace.wrapped .luminance-slider-modern {
 		width: min(240px, calc(100vw - 80px));
@@ -2667,10 +2677,10 @@ input[type='range'] {
 		grid-template-columns: repeat(
 			auto-fill,
 			minmax(24px, 1fr)
-		); /* Even smaller on mobile */
+		); 
 		gap: 3px;
 	}
-}
+} */
 
 /*#endregion /Modern Color Picker CSS */
 
