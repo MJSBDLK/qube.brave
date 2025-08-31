@@ -2,6 +2,7 @@
 'use client'
 import React from 'react';
 import Update from '../components/Update';
+import Tagline from '@/components/Tagline';
 
 const HomePage = () => {
 	const updates = [
@@ -29,7 +30,7 @@ const HomePage = () => {
       {/* Hero Section */}
       <section className="hero-section">
         <div className="hero-content">
-          <div className="superheader text-caption text-teal u-mb-sm">Stellar and Baller</div>
+					<Tagline />
           <h1 className="text-display u-mb-lg">Quinn Davis</h1>
           <p className="text-body text-secondary">
             Description goes here
