@@ -41,6 +41,7 @@ const GradientColorSampler = () => {
 	const [showLuminance, setShowLuminance] = useState('none')
 	const [comparisonRamp, setComparisonRamp] = useState(null)
 	const [showComparisonSection, setShowComparisonSection] = useState(false)
+	const [showSavedRamps, setShowSavedRamps] = useState(true)
 
 	// Use the color sampling hook
 	const {
@@ -458,64 +459,25 @@ const GradientColorSampler = () => {
 					message={processing ? 'Loading image...' : 'Generating swatch...'}
 				/>
 				<div className='main-grid'>
-					{/* Testing Controls - Left Column (3/12) */}
-					{testingMode && (
-						<div className='testing-controls-section'>
-							<h3>Testing Controls</h3>
-							<div className='testing-content'>
-								<div className='test-info'>
-									<p>Quick test gradients:</p>
-									<button
-										className='mini-test-btn'
-										onClick={() => {
-											const testColors = [
-												'#ff0000',
-												'#ffff00',
-												'#00ff00',
-												'#00ffff',
-												'#0000ff',
-											]
-											handleHexInputChange(testColors.join(', '))
-										}}
-									>
-										RGB
-									</button>
-									<button
-										className='mini-test-btn'
-										onClick={() => handleHexInputChange('#000000, #ffffff')}
-									>
-										B&W
-									</button>
-									<button
-										className='mini-test-btn'
-										onClick={() =>
-											handleHexInputChange('#ff6b6b, #4ecdc4, #45b7d1')
-										}
-									>
-										Sunset
-									</button>
-									<button
-										className='mini-test-btn'
-										onClick={() => handleHexInputChange('#667eea, #764ba2')}
-									>
-										Purple
-									</button>
-									<button className='mini-test-btn' onClick={createTestRamps}>
-										Test Ramps
-									</button>
-								</div>
-							</div>
-						</div>
-					)}
-					{/* Main Sampler - Right Column (6/12 or 9/12 if no testing) */}
+					{/* Main Sampler - Left Column */}
 					<div
 						id='gradient-sampler-main'
 						className={`gradient-sampler ${
-							testingMode ? 'with-testing' : 'full-width'
+							showSavedRamps ? 'with-saved-ramps' : 'full-width'
 						}`}
 					>
 						{/* Upload Section */}
 						<div className='upload-section'>
+							<div className='section-header'>
+								<h2>Color Ramp Generator</h2>
+								<button
+									className='toggle-saved-ramps-btn'
+									onClick={() => setShowSavedRamps(!showSavedRamps)}
+									title={showSavedRamps ? 'Hide saved ramps panel' : 'Show saved ramps panel'}
+								>
+									{showSavedRamps ? '🗂️ Hide Ramps' : '🗂️ Show Ramps'}
+								</button>
+							</div>
 							<div className='upload-grid'>
 								<div className='upload-item'>
 									<label className='upload-label'>PNG Image</label>
@@ -971,8 +933,9 @@ const GradientColorSampler = () => {
 						</div>
 					</div>{' '}
 					{/* Close gradient-sampler-main */}
-					{/* Saved Ramps - Right Column (3/12) */}
-					{testingMode && (
+					
+					{/* Saved Ramps - Right Column */}
+					{showSavedRamps && (
 						<div className='saved-ramps-section'>
 							<h3>Saved Ramps</h3>
 							<SavedRamps

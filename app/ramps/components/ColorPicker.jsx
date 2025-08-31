@@ -41,13 +41,8 @@ const ColorPicker = ({
   const colorWorkspaceRef = useRef(null)
   const pickerInterfaceRef = useRef(null)
 
-  // Update color when HSV values change - optimized to avoid excessive re-renders
+  // Update color when HSV values change - now updates in real-time during dragging
   useEffect(() => {
-    // Skip expensive calculations during dragging for better performance
-    if (isDraggingHue || isDraggingSV || isDraggingLuminance) {
-      return
-    }
-    
     const rgb = hsvToRgb(currentHue, currentSaturation, currentValue)
     const hex = rgbToHex(rgb.r, rgb.g, rgb.b)
     const luminance = calculateLuminance(rgb.r, rgb.g, rgb.b, luminanceMode)
@@ -58,7 +53,7 @@ const ColorPicker = ({
       setCurrentLuminance(luminance)
     }
     setHexInput(hex)
-  }, [currentHue, currentSaturation, currentValue, luminanceMode, isDraggingLuminance, isDraggingHue, isDraggingSV])
+  }, [currentHue, currentSaturation, currentValue, luminanceMode, isDraggingLuminance])
 
   // Listen for screen size changes to update layout
   useEffect(() => {
