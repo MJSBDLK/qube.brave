@@ -461,9 +461,9 @@ body {
 	padding-right: 0;
 	padding-top: var(--header-height); /* Keep header offset */
 	padding-bottom: var(--footer-height); /* Keep footer offset */
-	max-width: none;
-	width: 100%;
-	margin: 0;
+	max-width: none !important; /* Force full width on subpages */
+	width: 100% !important;
+	margin: 0 !important;
 	overflow: hidden; /* Prevent double scrollbar - let child handle scrolling */
 }
 
@@ -1639,6 +1639,8 @@ body {
 		padding: 0;
 		overflow: hidden; /* Prevent double scrollbar */
 		box-sizing: border-box;
+		max-width: none; /* Remove max-width constraint for subpages */
+		margin: 0; /* Remove auto centering margin */
 	}
 
 	.hero-content {
@@ -1753,14 +1755,12 @@ body {
 		padding-right: max(var(--space-3xl), calc((100vw - var(--sidebar-width) - var(--content-max-width-lg)) / 2));
 	}
 
-	.app-layout.subpage .main-content {
-		max-width: none; /* Full width on subpages */
-		margin: 0;
-		width: 100vw;
-		left: 0;
-	}
-
-	.text-display {
+		.app-layout.subpage .main-content {
+			max-width: none; /* Full width on subpages */
+			margin: 0;
+			width: 100vw;
+			left: 0;
+		}	.text-display {
 		font-size: 4rem;
 	}
 

@@ -35,6 +35,24 @@ h1 {
 
 /*#region React Component Styles */
 
+/* Force full width for the ramps page container and all its parents */
+.ramps-page-container {
+	width: 100% !important;
+	max-width: none !important;
+	min-width: 0 !important;
+	margin: 0 !important;
+	padding: 0 !important;
+}
+
+/* Override any global main-content constraints for ramps pages */
+main.main-content.subpage:has(.ramps-page-container) {
+	width: 100vw !important;
+	max-width: none !important;
+	min-width: 0 !important;
+	margin: 0 !important;
+	padding: 0 !important;
+}
+
 .gradient-sampler {
 	/* max-width: 960px; */
 	margin: 0 auto;
@@ -1522,18 +1540,33 @@ input[type='range'] {
 	font-family: monospace;
 }
 
-/* Main Grid Layout - True 12-column system */
+/* Main Grid Layout - FLEXBOX VERSION FOR 1/4-1/2-1/4 LAYOUT */
 .main-grid {
-	display: grid;
-	grid-template-columns: repeat(12, 1fr); /* 12 equal columns */
+	display: flex !important;
 	margin: 10px;
-	align-items: start;
 	gap: 20px;
+	width: 100% !important;
+	max-width: none !important;
+}
+
+/* Add invisible spacer for the left 1/4 when testing panel is hidden */
+.main-grid::before {
+	content: '';
+	flex: 3 !important; /* Takes up 3/12 = 1/4 of the space */
+	min-width: 0;
 }
 
 .gradient-sampler.with-saved-ramps {
-	/* Takes columns 4-9 (6 columns) when saved ramps panel is active */
-	grid-column: 4 / 10;
+	/* Should take up 6 columns worth (1/2 of total width) */
+	flex: 6 !important;
+	width: auto !important;
+	max-width: none !important;
+}
+
+.gradient-sampler.full-width {
+	/* Takes full width when saved ramps panel is hidden */
+	flex: 1 !important;
+	width: 100% !important;
 }
 
 .gradient-sampler.full-width {
@@ -1547,7 +1580,10 @@ input[type='range'] {
 	border-radius: 12px;
 	padding: 20px;
 	border: 1px solid #333;
-	grid-column: 10 / 13; /* Takes columns 10-12 (3 columns) */
+	/* Should take up 3 columns worth (1/4 of total width) */
+	flex: 3 !important;
+	width: auto !important;
+	max-width: none !important;
 }
 
 /* Future: Testing/Navigation Section */
@@ -2516,7 +2552,7 @@ input[type='range'] {
 	border: 1px solid rgba(255, 255, 255, 0.1); /* Thinner border */
 	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2),
 		inset 0 1px 2px rgba(255, 255, 255, 0.1);
-	overflow: hidden;
+	overflow: visible;
 }
 
 .color-chip-modern:hover {
@@ -2528,9 +2564,8 @@ input[type='range'] {
 
 .remove-chip-btn {
 	position: absolute;
-	top: 50%;
-	right: 50%;
-	transform: translate(50%, -50%);
+	top: -6px;
+	right: -6px;
 	width: 20px;
 	height: 20px;
 	background: rgba(0, 0, 0, 0.7);
@@ -2545,6 +2580,7 @@ input[type='range'] {
 	justify-content: center;
 	transition: all 0.2s ease;
 	backdrop-filter: blur(10px);
+	z-index: 10;
 }
 
 .color-chip-modern:hover .remove-chip-btn {
