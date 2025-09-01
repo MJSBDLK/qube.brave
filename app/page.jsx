@@ -33,7 +33,7 @@ const HomePage = () => {
 					<Tagline />
           <h1 className="text-display u-mb-lg">Quinn Davis</h1>
           <p className="text-body text-secondary">
-            Description goes here
+            Description goes here lol
           </p>
         </div>
       </section>

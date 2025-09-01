@@ -1,4 +1,5 @@
 import React from 'react';
+import {EyeOff, Bug} from 'lucide-react';
 
 export default function Footer() {
   return (
@@ -12,8 +13,9 @@ export default function Footer() {
         {/* Center - Minimal links */}
         <div className="footer-center">
           <nav className="footer-nav">
-            <a href="#" className="footer-link">Privacy</a>
-            <a href="#" className="footer-link">Report Bug</a>
+            {/* Is this even working? */}
+            <a href="#" className="footer-link" title="Coming soon"><EyeOff /></a>
+            <a href="#" className="footer-link" title="Coming soon"><Bug /></a>
           </nav>
         </div>
 
