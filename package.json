@@ -1,0 +1,34 @@
+{
+	"name": "qube.brave",
+	"version": "0.1.0",
+	"private": true,
+	"scripts": {
+		"dev": "next dev",
+		"build": "next build",
+		"start": "next start",
+		"lint": "next lint",
+		"lint:css": "stylelint **/*.css",
+		"lint:css:fix": "stylelint **/*.css --fix",
+		"db:migrate": "prisma migrate dev",
+		"db:generate": "prisma generate",
+		"db:studio": "prisma studio"
+	},
+	"dependencies": {
+		"@prisma/client": "^6.14.0",
+		"lucide-react": "^0.542.0",
+		"next": "15.5.0",
+		"pg": "^8.16.3",
+		"prisma": "^6.14.0",
+		"react": "19.1.0",
+		"react-dom": "19.1.0"
+	},
+	"devDependencies": {
+		"@eslint/eslintrc": "^3",
+		"@tailwindcss/postcss": "^4",
+		"eslint": "^9",
+		"eslint-config-next": "15.5.0",
+		"stylelint": "^16.23.1",
+		"stylelint-config-standard": "^39.0.0",
+		"tailwindcss": "^4"
+	}
+}

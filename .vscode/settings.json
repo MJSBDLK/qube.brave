@@ -1,0 +1,7 @@
+{
+  "css.validate": true,
+  "css.lint.duplicateProperties": "warning",
+  "css.lint.unknownProperties": "warning",
+  "css.lint.compatibleVendorPrefixes": "warning",
+  "css.lint.vendorPrefix": "warning"
+}

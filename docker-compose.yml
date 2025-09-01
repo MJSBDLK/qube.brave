@@ -1,0 +1,15 @@
+services:
+  qube-brave:
+    build: .
+    container_name: qube-brave-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    networks:
+      - qube-network
+
+networks:
+  qube-network:
+    driver: bridge
