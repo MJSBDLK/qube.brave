@@ -2,17 +2,8 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
-
-# Try without cache clean first
-RUN npm install
-
-# Copy all files
+# Copy everything including node_modules and built files
 COPY . .
-
-# Build the app
-RUN npm run build
 
 # Expose port
 EXPOSE 3000
